@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - FinanceApp</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo-small">
+                <span>💰</span>
+                <h1>FinanceApp</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="active">📊 Dashboard</a>
+                <a href="transactions.html">📝 Transações</a>
+                <div class="user-info">
+                    <span>👤 <span id="userName"></span></span>
+                    <button id="logoutBtn" class="btn-logout">🚪 Sair</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <!-- Status do Python -->
+        <div id="pythonStatus" class="python-status">
+            <span>🐍 Verificando conexão com Python...</span>
+        </div>
+        
+        <div class="filters-card">
+            <h3>📅 Período de análise</h3>
+            <div class="filter-buttons">
+                <button onclick="setPeriod('week')" class="filter-btn">📆 Esta semana</button>
+                <button onclick="setPeriod('month')" class="filter-btn">📆 Este mês</button>
+                <button onclick="setPeriod('year')" class="filter-btn">📆 Este ano</button>
+            </div>
+            <div class="custom-date">
+                <input type="date" id="startDate">
+                <span>→</span>
+                <input type="date" id="endDate">
+                <button onclick="loadDashboard()" class="btn-secondary">Aplicar</button>
+            </div>
+        </div>
+        
+        <div class="summary-cards">
+            <div class="card balance">
+                <div class="card-icon">💰</div>
+                <div class="card-content">
+                    <h3>Saldo atual</h3>
+                    <p id="balance">R$ 0,00</p>
+                </div>
+            </div>
+            <div class="card incomes">
+                <div class="card-icon">📈</div>
+                <div class="card-content">
+                    <h3>Receitas</h3>
+                    <p id="totalIncomes">R$ 0,00</p>
+                </div>
+            </div>
+            <div class="card expenses">
+                <div class="card-icon">📉</div>
+                <div class="card-content">
+                    <h3>Despesas</h3>
+                    <p id="totalExpenses">R$ 0,00</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="chart-box">
+                <h3>📊 Despesas por categoria</h3>
+                <canvas id="categoryChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>📈 Evolução mensal</h3>
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="insights-box">
+            <h3>💡 Insights inteligentes (gerados pelo Python)</h3>
+            <div id="insightsList" class="insights-list">
+                <div class="insight-placeholder">
+                    <p>⏳ Carregando insights do Python...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-box">
+            <h3>📊 Estatísticas</h3>
+            <div id="statsList" class="stats-list"></div>
+        </div>
+    </div>
+    
+    <style>
+        .python-status {
+            background: #f0f0f0;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .python-status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+        .python-status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .stats-box {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .stats-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .stat-card h4 {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .stat-card p {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+    
+    <script>
+        let categoryChart = null;
+        let monthlyChart = null;
+        
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        }
+        
+        function getToday() {
+            return new Date().toISOString().split('T')[0];
+        }
+        
+        function getFirstDayOfMonth() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            return firstDay.toISOString().split('T')[0];
+        }
+        
+        function setPeriod(period) {
+            const today = new Date();
+            let startDate = new Date();
+            
+            switch(period) {
+                case 'week':
+                    startDate.setDate(today.getDate() - 7);
+                    break;
+                case 'month':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    break;
+                case 'year':
+                    startDate = new Date(today.getFullYear(), 0, 1);
+                    break;
+            }
+            
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('endDate').value = getToday();
+            loadDashboard();
+        }
+        
+        async function checkPythonStatus() {
+            try {
+                const response = await fetch('http://localhost:5000/health');
+                const data = await response.json();
+                const statusDiv = document.getElementById('pythonStatus');
+                if (response.ok) {
+                    statusDiv.innerHTML = '<span>✅ Python Service: ONLINE - ' + data.message + '</span>';
+                    statusDiv.className = 'python-status online';
+                    return true;
+                } else {
+                    throw new Error('Python não respondeu');
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('pythonStatus');
+                statusDiv.innerHTML = '<span>❌ Python Service: OFFLINE - Os insights e gráficos podem não funcionar corretamente</span>';
+                statusDiv.className = 'python-status offline';
+                return false;
+            }
+        }
+        
+        async function loadDashboard() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            let startDate = document.getElementById('startDate').value;
+            let endDate = document.getElementById('endDate').value;
+            
+            if (!startDate) startDate = getFirstDayOfMonth();
+            if (!endDate) endDate = getToday();
+            
+            // Buscar transações do localStorage
+            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
+            let transactions = savedTransactions ? JSON.parse(savedTransactions) : [];
+            
+            // Adicionar nomes das categorias
+            transactions = transactions.map(t => {
+                let categoryName = '';
+                if (t.type === 'EXPENSE') {
+                    const cat = EXPENSE_CATEGORIES.find(c => c.id === t.categoryId);
+                    categoryName = cat ? cat.name : 'Outros';
+                } else {
+                    const cat = INCOME_CATEGORIES.find(c => c.id === t.categoryId);
+                    categoryName = cat ? cat.name : 'Outros';
+                }
+                return { ...t, category: categoryName };
+            });
+            
+            // Filtrar por período
+            const filtered = transactions.filter(t => {
+                return t.transactionDate >= startDate && t.transactionDate <= endDate;
+            });
+            
+            // Verificar se Python está online
+            const pythonOnline = await checkPythonStatus();
+            
+            if (pythonOnline) {
+                // Usar Python para processar os dados
+                await loadDashboardWithPython(filtered, startDate, endDate);
+            } else {
+                // Fallback: usar JavaScript
+                loadDashboardWithJS(filtered);
+            }
+        }
+        
+        async function loadDashboardWithPython(transactions, startDate, endDate) {
+            try {
+                const response = await fetch('http://localhost:5000/dashboard-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        transactions: transactions,
+                        startDate: startDate,
+                        endDate: endDate
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Atualizar resumo
+                    document.getElementById('balance').textContent = formatCurrency(data.summary.balance);
+                    document.getElementById('totalIncomes').textContent = formatCurrency(data.summary.totalIncomes);
+                    document.getElementById('totalExpenses').textContent = formatCurrency(data.summary.totalExpenses);
+                    
+                    // Atualizar gráficos
+                    updateCategoryChart(data.charts.categoryChart);
+                    updateMonthlyChart(data.charts.monthlyChart);
+                    
+                    // Atualizar insights
+                    updateInsights(data.insights);
+                    
+                    // Atualizar estatísticas
+                    updateStats(data.stats);
+                } else {
+                    console.error('Erro do Python:', data.error);
+                    loadDashboardWithJS(transactions);
+                }
+            } catch (error) {
+                console.error('Erro ao chamar Python:', error);
+                loadDashboardWithJS(transactions);
+            }
+        }
+        
+        function loadDashboardWithJS(transactions) {
+            // Fallback: cálculo com JavaScript
+            const totalIncomes = transactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
+            const totalExpenses = transactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
+            const balance = totalIncomes - totalExpenses;
+            
+            document.getElementById('balance').textContent = formatCurrency(balance);
+            document.getElementById('totalIncomes').textContent = formatCurrency(totalIncomes);
+            document.getElementById('totalExpenses').textContent = formatCurrency(totalExpenses);
+            
+            // Gráfico de categorias
+            const expensesByCategory = {};
+            transactions.filter(t => t.type === 'EXPENSE').forEach(t => {
+                const cat = t.category || 'Outros';
+                expensesByCategory[cat] = (expensesByCategory[cat] || 0) + t.amount;
+            });
+            
+            updateCategoryChart({
+                labels: Object.keys(expensesByCategory),
+                values: Object.values(expensesByCategory)
+            });
+            
+            // Insights padrão
+            const insights = [{
+                type: 'info',
+                icon: 'ℹ️',
+                title: 'Modo Offline',
+                message: 'Python service não está disponível',
+                suggestion: 'Os insights estão sendo gerados localmente'
+            }];
+            updateInsights(insights);
+        }
+        
+        function updateCategoryChart(chartData) {
+            if (categoryChart) categoryChart.destroy();
+            
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            categoryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: chartData.labels || [],
+                    datasets: [{
+                        data: chartData.values || [],
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#66BB6A', '#AB47BC'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                                    return `${context.label}: ${formatCurrency(context.raw)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateMonthlyChart(chartData) {
+            if (monthlyChart) monthlyChart.destroy();
+            
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            monthlyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels || [],
+                    datasets: [
+                        {
+                            label: 'Receitas',
+                            data: chartData.incomes || [],
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'Despesas',
+                            data: chartData.expenses || [],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateInsights(insights) {
+            const insightsDiv = document.getElementById('insightsList');
+            
+            if (!insights || insights.length === 0) {
+                insightsDiv.innerHTML = '<div class="insight-placeholder"><p>📝 Adicione transações para receber insights</p></div>';
+                return;
+            }
+            
+            insightsDiv.innerHTML = insights.map(insight => `
+                <div class="insight-card ${insight.type}">
+                    <div class="insight-icon">${insight.icon || '💡'}</div>
+                    <div class="insight-content">
+                        <h4>${insight.title}</h4>
+                        <p>${insight.message}</p>
+                        <small>💡 ${insight.suggestion}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateStats(stats) {
+            const statsDiv = document.getElementById('statsList');
+            if (!stats) return;
+            
+            statsDiv.innerHTML = `
+                <div class="stat-card">
+                    <h4>📝 Total de transações</h4>
+                    <p>${stats.totalTransactions || 0}</p>
+                </div>
+                <div class="stat-card">
+                    <h4>💰 Total de receitas</h4>
+                    <p>${stats.totalIncomesCount || 0}</p>
+                </div>
+                <div class="stat-card">
+                    <h4>💸 Total de despesas</h4>
+                    <p>${stats.totalExpensesCount || 0}</p>
+                </div>
+                <div class="stat-card">
+                    <h4>📊 Gasto médio</h4>
+                    <p>${formatCurrency(stats.averageExpense || 0)}</p>
+                </div>
+            `;
+        }
+        
+        // Categorias para referência
+        const EXPENSE_CATEGORIES = [
+            { id: 1, name: "Alimentação" }, { id: 2, name: "Transporte" },
+            { id: 3, name: "Lazer" }, { id: 4, name: "Moradia" },
+            { id: 5, name: "Saúde" }, { id: 6, name: "Educação" },
+            { id: 7, name: "Vestuário" }, { id: 8, name: "Serviços" },
+            { id: 9, name: "Pet" }, { id: 10, name: "Presentes" },
+            { id: 11, name: "Viagem" }, { id: 12, name: "Dívidas" },
+            { id: 13, name: "Outros" }
+        ];
+        
+        const INCOME_CATEGORIES = [
+            { id: 101, name: "Salário" }, { id: 102, name: "Freelance" },
+            { id: 103, name: "Investimentos" }, { id: 104, name: "Presentes" },
+            { id: 105, name: "Bônus" }, { id: 106, name: "Rendimentos" },
+            { id: 107, name: "Outros" }
+        ];
+        
+        document.getElementById('userName').textContent = localStorage.getItem('userName') || 'Usuário';
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        });
+        
+        document.getElementById('startDate').value = getFirstDayOfMonth();
+        document.getElementById('endDate').value = getToday();
+        
+        loadDashboard();
+        
+        // Atualizar a cada 30 segundos
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>

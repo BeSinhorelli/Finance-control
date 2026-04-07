@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Conta - FinanceApp</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .password-strength {
+            margin-top: 5px;
+            font-size: 12px;
+        }
+        .strength-weak { color: #e74c3c; }
+        .strength-medium { color: #f39c12; }
+        .strength-strong { color: #27ae60; }
+    </style>
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="logo">
+                <div class="logo-icon">💰</div>
+                <h1>FinanceApp</h1>
+                <p class="subtitle">Controle suas finanças de forma inteligente</p>
+            </div>
+            
+            <h2>Criar minha conta</h2>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>📝 Nome completo</label>
+                    <input type="text" id="name" placeholder="Ex: João Silva" required>
+                </div>
+                <div class="form-group">
+                    <label>📧 E-mail</label>
+                    <input type="email" id="email" placeholder="seu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>🔒 Senha</label>
+                    <input type="password" id="password" placeholder="Mínimo 6 caracteres" required>
+                    <div class="password-strength" id="passwordStrength"></div>
+                </div>
+                <div class="form-group">
+                    <label>✅ Confirmar senha</label>
+                    <input type="password" id="confirmPassword" placeholder="Digite a senha novamente" required>
+                </div>
+                <button type="submit" class="btn-primary">Criar minha conta</button>
+            </form>
+            
+            <div class="auth-footer">
+                <p>Já tem uma conta? <a href="login.html">Fazer login</a></p>
+            </div>
+            <div id="message" class="message"></div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                showMessage('As senhas não conferem!', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showMessage('A senha deve ter no mínimo 6 caracteres!', 'error');
+                return;
+            }
+            
+            const data = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                password: password
+            };
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    showMessage(result.error, 'error');
+                } else {
+                    showMessage('✅ Cadastro realizado com sucesso! Redirecionando...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                }
+            } catch (error) {
+                showMessage('Erro de conexão com o servidor', 'error');
+            }
+        });
+        
+        function showMessage(msg, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.className = `message ${type}`;
+            msgDiv.innerHTML = msg;
+            setTimeout(() => {
+                msgDiv.innerHTML = '';
+            }, 3000);
+        }
+        
+        // Validador de senha
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strengthDiv = document.getElementById('passwordStrength');
+            
+            if (password.length === 0) {
+                strengthDiv.innerHTML = '';
+                return;
+            }
+            
+            let strength = 'weak';
+            let text = 'Senha fraca';
+            
+            if (password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password)) {
+                strength = 'strong';
+                text = 'Senha forte ✓';
+            } else if (password.length >= 6) {
+                strength = 'medium';
+                text = 'Senha média';
+            }
+            
+            strengthDiv.innerHTML = `<span class="strength-${strength}">🔐 ${text}</span>`;
+        });
+    </script>
+</body>
+</html>

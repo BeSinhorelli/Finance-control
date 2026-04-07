@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transações - FinanceApp</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo-small">
+                <span>💰</span>
+                <h1>FinanceApp</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html">📊 Dashboard</a>
+                <a href="transactions.html" class="active">📝 Transações</a>
+                <div class="user-info">
+                    <span>👤 <span id="userName"></span></span>
+                    <button id="logoutBtn" class="btn-logout">🚪 Sair</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="transactions-header">
+            <h2>📝 Minhas transações</h2>
+            <button onclick="openTransactionModal()" class="btn-primary">➕ Nova transação</button>
+        </div>
+        
+        <div class="filters-card">
+            <div class="filter-row">
+                <div class="date-filters">
+                    <label>📅 De:</label>
+                    <input type="date" id="startDate">
+                    <label>Até:</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div class="filter-actions">
+                    <button onclick="loadTransactions()" class="btn-secondary">🔍 Filtrar</button>
+                    <button onclick="resetFilters()" class="btn-outline">🔄 Limpar</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="transactions-table-container">
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsList">
+                    <tr>
+                        <td colspan="6" class="empty-message">📭 Nenhuma transação encontrada</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Modal de transação -->
+    <div id="transactionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">➕ Nova transação</h3>
+                <span class="close" onclick="closeTransactionModal()">&times;</span>
+            </div>
+            <form id="transactionForm">
+                <input type="hidden" id="transactionId">
+                
+                <div class="form-group">
+                    <label>📝 Descrição</label>
+                    <input type="text" id="description" placeholder="Ex: Supermercado, Salário, Cinema, etc" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>💰 Valor</label>
+                        <input type="number" id="amount" step="0.01" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>📅 Data</label>
+                        <input type="date" id="transactionDate" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>🔄 Tipo</label>
+                        <select id="type" required onchange="updateCategoriesByType()">
+                            <option value="EXPENSE">💸 Despesa</option>
+                            <option value="INCOME">💰 Receita</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📂 Categoria</label>
+                        <select id="categoryId" required>
+                            <option value="">Selecione uma categoria</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="button" onclick="closeTransactionModal()" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-primary">💾 Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Toast de notificação -->
+    <div id="toast" class="toast"></div>
+    
+    <script>
+        // ============ CATEGORIAS PRÉ-DEFINIDAS ============
+        const EXPENSE_CATEGORIES = [
+            { id: 1, name: "🍔 Alimentação", icon: "🍔", type: "EXPENSE" },
+            { id: 2, name: "🚗 Transporte", icon: "🚗", type: "EXPENSE" },
+            { id: 3, name: "🎬 Lazer", icon: "🎬", type: "EXPENSE" },
+            { id: 4, name: "🏠 Moradia", icon: "🏠", type: "EXPENSE" },
+            { id: 5, name: "💊 Saúde", icon: "💊", type: "EXPENSE" },
+            { id: 6, name: "📚 Educação", icon: "📚", type: "EXPENSE" },
+            { id: 7, name: "👕 Vestuário", icon: "👕", type: "EXPENSE" },
+            { id: 8, name: "📱 Serviços", icon: "📱", type: "EXPENSE" },
+            { id: 9, name: "🐶 Pet", icon: "🐶", type: "EXPENSE" },
+            { id: 10, name: "🎁 Presentes", icon: "🎁", type: "EXPENSE" },
+            { id: 11, name: "✈️ Viagem", icon: "✈️", type: "EXPENSE" },
+            { id: 12, name: "💳 Dívidas", icon: "💳", type: "EXPENSE" },
+            { id: 13, name: "📝 Outros", icon: "📝", type: "EXPENSE" }
+        ];
+        
+        const INCOME_CATEGORIES = [
+            { id: 101, name: "💼 Salário", icon: "💼", type: "INCOME" },
+            { id: 102, name: "💻 Freelance", icon: "💻", type: "INCOME" },
+            { id: 103, name: "📈 Investimentos", icon: "📈", type: "INCOME" },
+            { id: 104, name: "🎁 Presentes", icon: "🎁", type: "INCOME" },
+            { id: 105, name: "💰 Bônus", icon: "💰", type: "INCOME" },
+            { id: 106, name: "🏦 Rendimentos", icon: "🏦", type: "INCOME" },
+            { id: 107, name: "📝 Outros", icon: "📝", type: "INCOME" }
+        ];
+        
+        let transactions = []; // Array para armazenar transações localmente
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 3000);
+        }
+        
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        }
+        
+        function getToday() {
+            return new Date().toISOString().split('T')[0];
+        }
+        
+        function getFirstDayOfMonth() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            return firstDay.toISOString().split('T')[0];
+        }
+        
+        function resetFilters() {
+            document.getElementById('startDate').value = getFirstDayOfMonth();
+            document.getElementById('endDate').value = getToday();
+            loadTransactions();
+        }
+        
+        function updateCategoriesByType() {
+            const type = document.getElementById('type').value;
+            const select = document.getElementById('categoryId');
+            
+            let categories = [];
+            if (type === 'EXPENSE') {
+                categories = EXPENSE_CATEGORIES;
+            } else {
+                categories = INCOME_CATEGORIES;
+            }
+            
+            select.innerHTML = '<option value="">Selecione uma categoria</option>';
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = `${cat.icon} ${cat.name}`;
+                select.appendChild(option);
+            });
+        }
+        
+        function loadTransactions() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            let startDate = document.getElementById('startDate').value;
+            let endDate = document.getElementById('endDate').value;
+            
+            if (!startDate) startDate = getFirstDayOfMonth();
+            if (!endDate) endDate = getToday();
+            
+            // Buscar transações do localStorage
+            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
+            if (savedTransactions) {
+                transactions = JSON.parse(savedTransactions);
+            } else {
+                transactions = [];
+            }
+            
+            // Filtrar por data
+            const filtered = transactions.filter(t => {
+                return t.transactionDate >= startDate && t.transactionDate <= endDate;
+            });
+            
+            displayTransactions(filtered);
+        }
+        
+        function displayTransactions(transactionsList) {
+            const tbody = document.getElementById('transactionsList');
+            
+            if (!transactionsList || transactionsList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-message">📭 Nenhuma transação encontrada</td></tr>';
+                return;
+            }
+            
+            // Ordenar por data (mais recente primeiro)
+            transactionsList.sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+            
+            tbody.innerHTML = transactionsList.map(t => {
+                // Buscar nome da categoria pelo ID
+                let categoryName = '';
+                let categoryIcon = '';
+                
+                if (t.type === 'EXPENSE') {
+                    const cat = EXPENSE_CATEGORIES.find(c => c.id == t.categoryId);
+                    categoryName = cat ? cat.name : 'Despesa';
+                    categoryIcon = cat ? cat.icon : '💸';
+                } else {
+                    const cat = INCOME_CATEGORIES.find(c => c.id == t.categoryId);
+                    categoryName = cat ? cat.name : 'Receita';
+                    categoryIcon = cat ? cat.icon : '💰';
+                }
+                
+                return `
+                    <tr>
+                        <td>${formatDate(t.transactionDate)}</td>
+                        <td><strong>${t.description}</strong></td>
+                        <td><span class="category-badge">${categoryIcon} ${categoryName}</span></td>
+                        <td><span class="type-badge ${t.type === 'INCOME' ? 'income' : 'expense'}">${t.type === 'INCOME' ? '💰 Receita' : '💸 Despesa'}</span></td>
+                        <td class="${t.type === 'INCOME' ? 'income-value' : 'expense-value'}">${formatCurrency(t.amount)}</td>
+                        <td>
+                            <button class="btn-icon edit" onclick="editTransaction(${t.id})" title="Editar">✏️</button>
+                            <button class="btn-icon delete" onclick="deleteTransaction(${t.id})" title="Excluir">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR');
+        }
+        
+        function openTransactionModal() {
+            document.getElementById('modalTitle').textContent = '➕ Nova transação';
+            document.getElementById('transactionForm').reset();
+            document.getElementById('transactionId').value = '';
+            document.getElementById('transactionDate').value = getToday();
+            updateCategoriesByType();
+            document.getElementById('transactionModal').style.display = 'flex';
+        }
+        
+        function closeTransactionModal() {
+            document.getElementById('transactionModal').style.display = 'none';
+        }
+        
+        function editTransaction(id) {
+            const userId = localStorage.getItem('userId');
+            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
+            if (savedTransactions) {
+                transactions = JSON.parse(savedTransactions);
+                const transaction = transactions.find(t => t.id === id);
+                
+                if (transaction) {
+                    document.getElementById('modalTitle').textContent = '✏️ Editar transação';
+                    document.getElementById('transactionId').value = transaction.id;
+                    document.getElementById('description').value = transaction.description;
+                    document.getElementById('amount').value = transaction.amount;
+                    document.getElementById('type').value = transaction.type;
+                    document.getElementById('transactionDate').value = transaction.transactionDate;
+                    
+                    updateCategoriesByType();
+                    document.getElementById('categoryId').value = transaction.categoryId;
+                    document.getElementById('transactionModal').style.display = 'flex';
+                }
+            }
+        }
+        
+        function deleteTransaction(id) {
+            if (!confirm('⚠️ Tem certeza que deseja excluir esta transação?')) return;
+            
+            const userId = localStorage.getItem('userId');
+            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
+            if (savedTransactions) {
+                transactions = JSON.parse(savedTransactions);
+                transactions = transactions.filter(t => t.id !== id);
+                localStorage.setItem(`transactions_${userId}`, JSON.stringify(transactions));
+                showToast('✅ Transação excluída com sucesso!', 'success');
+                loadTransactions();
+                updateDashboardSummary();
+            }
+        }
+        
+        function updateDashboardSummary() {
+            // Atualizar o resumo no dashboard se estiver aberto
+            const userId = localStorage.getItem('userId');
+            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
+            if (savedTransactions) {
+                const allTransactions = JSON.parse(savedTransactions);
+                const totalIncomes = allTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
+                const totalExpenses = allTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
+                const balance = totalIncomes - totalExpenses;
+                
+                // Salvar resumo no localStorage para o dashboard
+                localStorage.setItem(`summary_${userId}`, JSON.stringify({
+                    totalIncomes,
+                    totalExpenses,
+                    balance
+                }));
+            }
+        }
+        
+        document.getElementById('transactionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userId = localStorage.getItem('userId');
+            if (!userId) return;
+            
+            const id = document.getElementById('transactionId').value;
+            const transaction = {
+                id: id ? parseInt(id) : Date.now(),
+                userId: parseInt(userId),
+                description: document.getElementById('description').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                type: document.getElementById('type').value,
+                categoryId: parseInt(document.getElementById('categoryId').value),
+                transactionDate: document.getElementById('transactionDate').value
+            };
+            
+            if (!transaction.categoryId) {
+                showToast('Por favor, selecione uma categoria', 'error');
+                return;
+            }
+            
+            // Salvar no localStorage
+            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
+            if (savedTransactions) {
+                transactions = JSON.parse(savedTransactions);
+            } else {
+                transactions = [];
+            }
+            
+            if (id) {
+                // Editar
+                const index = transactions.findIndex(t => t.id === parseInt(id));
+                if (index !== -1) {
+                    transactions[index] = transaction;
+                }
+            } else {
+                // Adicionar
+                transactions.push(transaction);
+            }
+            
+            localStorage.setItem(`transactions_${userId}`, JSON.stringify(transactions));
+            updateDashboardSummary();
+            
+            showToast('✅ Transação salva com sucesso!', 'success');
+            closeTransactionModal();
+            loadTransactions();
+        });
+        
+        document.getElementById('userName').textContent = localStorage.getItem('userName') || 'Usuário';
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        });
+        
+        document.getElementById('startDate').value = getFirstDayOfMonth();
+        document.getElementById('endDate').value = getToday();
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById('transactionModal');
+            if (event.target === modal) {
+                closeTransactionModal();
+            }
+        };
+        
+        loadTransactions();
+    </script>
+</body>
+</html>
