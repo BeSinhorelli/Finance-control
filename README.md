@@ -8,7 +8,7 @@
 
 O **FinanceApp** é um sistema completo de controle financeiro pessoal que permite aos usuários gerenciar receitas e despesas de forma simples e intuitiva.
 
-A aplicação combina diferentes tecnologias modernas:
+A aplicação combina diferentes tecnologias:
 
 - ⚙️ **Java + Spring Boot** → Backend principal (API REST)
 - 🧠 **Python (Flask)** → Análise inteligente de dados financeiros
