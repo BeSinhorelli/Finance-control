@@ -1,6 +1,5 @@
 package com.finance.app.controller;
 
-import com.finance.app.dto.TransactionDTO;
 import com.finance.app.model.Transaction;
 import com.finance.app.model.User;
 import com.finance.app.repository.UserRepository;
@@ -11,35 +10,39 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/transactions")
 @CrossOrigin(origins = "*")
 public class TransactionController {
-    
+
     private final TransactionService transactionService;
     private final UserRepository userRepository;
-    
+
     public TransactionController(TransactionService transactionService, UserRepository userRepository) {
         this.transactionService = transactionService;
         this.userRepository = userRepository;
     }
-    
-    private User getUser(Long userId) {
-        return userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-    }
-    
+
     @PostMapping
-    public Map<String, Object> create(@RequestBody TransactionDTO dto) {
+    public Map<String, Object> create(@RequestBody Map<String, Object> body) {
         Map<String, Object> response = new HashMap<>();
         try {
-            User user = getUser(dto.getId() != null ? dto.getId() : 1L);
-            Transaction transaction = transactionService.create(
-                dto.getDescription(), dto.getAmount(), dto.getType(),
-                dto.getTransactionDate(), dto.getCategoryId(), user
-            );
+            Long userId = Long.valueOf(body.get("userId").toString());
+            String description = body.get("description").toString();
+            BigDecimal amount = new BigDecimal(body.get("amount").toString());
+            String type = body.get("type").toString();
+            String category = body.get("category").toString();
+            LocalDate transactionDate = LocalDate.parse(body.get("transactionDate").toString());
+            
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                response.put("error", "Usuário não encontrado");
+                return response;
+            }
+            
+            Transaction transaction = transactionService.create(description, amount, type, category, transactionDate, user);
+            
             response.put("success", true);
             response.put("transaction", transaction);
         } catch (Exception e) {
@@ -47,47 +50,62 @@ public class TransactionController {
         }
         return response;
     }
-    
+
     @GetMapping
-    public List<TransactionDTO> findByPeriod(@RequestParam Long userId,
-                                              @RequestParam String startDate,
-                                              @RequestParam String endDate) {
-        User user = getUser(userId);
+    public List<Transaction> findAll(@RequestParam Long userId, 
+                                      @RequestParam String startDate, 
+                                      @RequestParam String endDate) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return List.of();
+        
         LocalDate start = LocalDate.parse(startDate);
         LocalDate end = LocalDate.parse(endDate);
         
-        return transactionService.findByPeriod(user, start, end).stream().map(t -> {
-            TransactionDTO dto = new TransactionDTO();
-            dto.setId(t.getId());
-            dto.setDescription(t.getDescription());
-            dto.setAmount(t.getAmount());
-            dto.setType(t.getType().toString());
-            dto.setTransactionDate(t.getTransactionDate());
-            dto.setCategoryName(t.getCategory().getName());
-            return dto;
-        }).collect(Collectors.toList());
+        return transactionService.findByPeriod(user, start, end);
     }
-    
-    @GetMapping("/summary")
-    public Map<String, Object> getSummary(@RequestParam Long userId,
-                                           @RequestParam String startDate,
-                                           @RequestParam String endDate) {
-        User user = getUser(userId);
-        LocalDate start = LocalDate.parse(startDate);
-        LocalDate end = LocalDate.parse(endDate);
-        
-        BigDecimal totalIncomes = transactionService.getTotalIncomes(user, start, end);
-        BigDecimal totalExpenses = transactionService.getTotalExpenses(user, start, end);
-        BigDecimal balance = totalIncomes.subtract(totalExpenses);
-        
-        List<Object[]> categoryExpenses = transactionService.getExpensesByCategory(user, start, end);
-        
-        Map<String, Object> summary = new HashMap<>();
-        summary.put("totalIncomes", totalIncomes);
-        summary.put("totalExpenses", totalExpenses);
-        summary.put("balance", balance);
-        summary.put("categoryExpenses", categoryExpenses);
-        
-        return summary;
+
+    @PutMapping("/{id}")
+    public Map<String, Object> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Long userId = Long.valueOf(body.get("userId").toString());
+            String description = body.get("description").toString();
+            BigDecimal amount = new BigDecimal(body.get("amount").toString());
+            String type = body.get("type").toString();
+            String category = body.get("category").toString();
+            LocalDate transactionDate = LocalDate.parse(body.get("transactionDate").toString());
+            
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                response.put("error", "Usuário não encontrado");
+                return response;
+            }
+            
+            Transaction transaction = transactionService.update(id, description, amount, type, category, transactionDate, user);
+            
+            response.put("success", true);
+            response.put("transaction", transaction);
+        } catch (Exception e) {
+            response.put("error", e.getMessage());
+        }
+        return response;
+    }
+
+    @DeleteMapping("/{id}")
+    public Map<String, Object> delete(@PathVariable Long id, @RequestParam Long userId) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                response.put("error", "Usuário não encontrado");
+                return response;
+            }
+            
+            transactionService.delete(id, user);
+            response.put("success", true);
+        } catch (Exception e) {
+            response.put("error", e.getMessage());
+        }
+        return response;
     }
 }

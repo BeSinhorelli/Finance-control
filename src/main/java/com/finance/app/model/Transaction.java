@@ -22,12 +22,11 @@ public class Transaction {
     @Column(nullable = false)
     private TransactionType type;
     
+    @Column(nullable = false, length = 50)
+    private String category;
+    
     @Column(name = "transaction_date", nullable = false)
     private LocalDate transactionDate;
-    
-    @ManyToOne
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
     
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
@@ -50,10 +49,10 @@ public class Transaction {
     public void setAmount(BigDecimal amount) { this.amount = amount; }
     public TransactionType getType() { return type; }
     public void setType(TransactionType type) { this.type = type; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
     public LocalDate getTransactionDate() { return transactionDate; }
     public void setTransactionDate(LocalDate transactionDate) { this.transactionDate = transactionDate; }
-    public Category getCategory() { return category; }
-    public void setCategory(Category category) { this.category = category; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
     public LocalDateTime getCreatedAt() { return createdAt; }

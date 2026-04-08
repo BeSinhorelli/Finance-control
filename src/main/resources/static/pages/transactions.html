@@ -5,6 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transações - FinanceApp</title>
     <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            color: white;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast.show { opacity: 1; }
+        .toast.success { background: #27ae60; }
+        .toast.error { background: #e74c3c; }
+        .category-badge { background: #e8f0fe; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+        .type-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+        .type-badge.income { background: #d4edda; color: #155724; }
+        .type-badge.expense { background: #f8d7da; color: #721c24; }
+        .income-value { color: #27ae60; font-weight: bold; }
+        .expense-value { color: #e74c3c; font-weight: bold; }
+        .btn-icon { padding: 6px 10px; margin: 0 3px; border: none; border-radius: 6px; cursor: pointer; }
+        .btn-icon.edit { background: #3498db; color: white; }
+        .btn-icon.delete { background: #e74c3c; color: white; }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -27,7 +52,7 @@
     <div class="container">
         <div class="transactions-header">
             <h2>📝 Minhas transações</h2>
-            <button onclick="openTransactionModal()" class="btn-primary">➕ Nova transação</button>
+            <button onclick="openModal()" class="btn-primary">➕ Nova transação</button>
         </div>
         
         <div class="filters-card">
@@ -58,27 +83,25 @@
                     </tr>
                 </thead>
                 <tbody id="transactionsList">
-                    <tr>
-                        <td colspan="6" class="empty-message">📭 Nenhuma transação encontrada</td>
-                    </tr>
+                    <tr><td colspan="6" class="empty-message">📭 Carregando...</td</tr>
                 </tbody>
             </table>
         </div>
     </div>
     
-    <!-- Modal de transação -->
+    <!-- Modal -->
     <div id="transactionModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modalTitle">➕ Nova transação</h3>
-                <span class="close" onclick="closeTransactionModal()">&times;</span>
+                <span class="close" onclick="closeModal()">&times;</span>
             </div>
             <form id="transactionForm">
                 <input type="hidden" id="transactionId">
                 
                 <div class="form-group">
                     <label>📝 Descrição</label>
-                    <input type="text" id="description" placeholder="Ex: Supermercado, Salário, Cinema, etc" required>
+                    <input type="text" id="description" placeholder="Ex: Supermercado, Salário" required>
                 </div>
                 
                 <div class="form-row">
@@ -95,71 +118,55 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>🔄 Tipo</label>
-                        <select id="type" required onchange="updateCategoriesByType()">
+                        <select id="type" required onchange="updateCategories()">
                             <option value="EXPENSE">💸 Despesa</option>
                             <option value="INCOME">💰 Receita</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>📂 Categoria</label>
-                        <select id="categoryId" required>
+                        <select id="category" required>
                             <option value="">Selecione uma categoria</option>
                         </select>
                     </div>
                 </div>
                 
                 <div class="modal-buttons">
-                    <button type="button" onclick="closeTransactionModal()" class="btn-secondary">Cancelar</button>
+                    <button type="button" onclick="closeModal()" class="btn-secondary">Cancelar</button>
                     <button type="submit" class="btn-primary">💾 Salvar</button>
                 </div>
             </form>
         </div>
     </div>
     
-    <!-- Toast de notificação -->
     <div id="toast" class="toast"></div>
     
     <script>
-        // ============ CATEGORIAS PRÉ-DEFINIDAS ============
+        // Categorias disponíveis
         const EXPENSE_CATEGORIES = [
-            { id: 1, name: "🍔 Alimentação", icon: "🍔", type: "EXPENSE" },
-            { id: 2, name: "🚗 Transporte", icon: "🚗", type: "EXPENSE" },
-            { id: 3, name: "🎬 Lazer", icon: "🎬", type: "EXPENSE" },
-            { id: 4, name: "🏠 Moradia", icon: "🏠", type: "EXPENSE" },
-            { id: 5, name: "💊 Saúde", icon: "💊", type: "EXPENSE" },
-            { id: 6, name: "📚 Educação", icon: "📚", type: "EXPENSE" },
-            { id: 7, name: "👕 Vestuário", icon: "👕", type: "EXPENSE" },
-            { id: 8, name: "📱 Serviços", icon: "📱", type: "EXPENSE" },
-            { id: 9, name: "🐶 Pet", icon: "🐶", type: "EXPENSE" },
-            { id: 10, name: "🎁 Presentes", icon: "🎁", type: "EXPENSE" },
-            { id: 11, name: "✈️ Viagem", icon: "✈️", type: "EXPENSE" },
-            { id: 12, name: "💳 Dívidas", icon: "💳", type: "EXPENSE" },
-            { id: 13, name: "📝 Outros", icon: "📝", type: "EXPENSE" }
+            "Alimentação", "Transporte", "Lazer", "Moradia", "Saúde", 
+            "Educação", "Vestuário", "Serviços", "Pet", "Presentes", 
+            "Viagem", "Dívidas", "Outros"
         ];
         
         const INCOME_CATEGORIES = [
-            { id: 101, name: "💼 Salário", icon: "💼", type: "INCOME" },
-            { id: 102, name: "💻 Freelance", icon: "💻", type: "INCOME" },
-            { id: 103, name: "📈 Investimentos", icon: "📈", type: "INCOME" },
-            { id: 104, name: "🎁 Presentes", icon: "🎁", type: "INCOME" },
-            { id: 105, name: "💰 Bônus", icon: "💰", type: "INCOME" },
-            { id: 106, name: "🏦 Rendimentos", icon: "🏦", type: "INCOME" },
-            { id: 107, name: "📝 Outros", icon: "📝", type: "INCOME" }
+            "Salário", "Freelance", "Investimentos", "Presentes", 
+            "Bônus", "Rendimentos", "Outros"
         ];
         
-        let transactions = []; // Array para armazenar transações localmente
-        
-        function showToast(message, type = 'success') {
+        function showToast(message, type) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = `toast ${type} show`;
-            setTimeout(() => {
-                toast.className = 'toast';
-            }, 3000);
+            setTimeout(() => { toast.className = 'toast'; }, 3000);
         }
         
         function formatCurrency(value) {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        }
+        
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('pt-BR');
         }
         
         function getToday() {
@@ -168,8 +175,7 @@
         
         function getFirstDayOfMonth() {
             const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            return firstDay.toISOString().split('T')[0];
+            return new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
         }
         
         function resetFilters() {
@@ -178,120 +184,95 @@
             loadTransactions();
         }
         
-        function updateCategoriesByType() {
+        function updateCategories() {
             const type = document.getElementById('type').value;
-            const select = document.getElementById('categoryId');
-            
-            let categories = [];
-            if (type === 'EXPENSE') {
-                categories = EXPENSE_CATEGORIES;
-            } else {
-                categories = INCOME_CATEGORIES;
-            }
+            const select = document.getElementById('category');
+            const categories = type === 'EXPENSE' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
             
             select.innerHTML = '<option value="">Selecione uma categoria</option>';
             categories.forEach(cat => {
                 const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = `${cat.icon} ${cat.name}`;
+                option.value = cat;
+                option.textContent = cat;
                 select.appendChild(option);
             });
         }
         
-        function loadTransactions() {
+        async function loadTransactions() {
             const userId = localStorage.getItem('userId');
-            if (!userId) {
-                window.location.href = 'login.html';
-                return;
+            if (!userId) { 
+                window.location.href = 'login.html'; 
+                return; 
             }
             
-            let startDate = document.getElementById('startDate').value;
-            let endDate = document.getElementById('endDate').value;
+            let startDate = document.getElementById('startDate').value || getFirstDayOfMonth();
+            let endDate = document.getElementById('endDate').value || getToday();
             
-            if (!startDate) startDate = getFirstDayOfMonth();
-            if (!endDate) endDate = getToday();
-            
-            // Buscar transações do localStorage
-            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
-            if (savedTransactions) {
-                transactions = JSON.parse(savedTransactions);
-            } else {
-                transactions = [];
-            }
-            
-            // Filtrar por data
-            const filtered = transactions.filter(t => {
-                return t.transactionDate >= startDate && t.transactionDate <= endDate;
-            });
-            
-            displayTransactions(filtered);
-        }
-        
-        function displayTransactions(transactionsList) {
-            const tbody = document.getElementById('transactionsList');
-            
-            if (!transactionsList || transactionsList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-message">📭 Nenhuma transação encontrada</td></tr>';
-                return;
-            }
-            
-            // Ordenar por data (mais recente primeiro)
-            transactionsList.sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
-            
-            tbody.innerHTML = transactionsList.map(t => {
-                // Buscar nome da categoria pelo ID
-                let categoryName = '';
-                let categoryIcon = '';
+            try {
+                console.log("Carregando transações para usuário:", userId);
+                const response = await fetch(`/api/transactions?userId=${userId}&startDate=${startDate}&endDate=${endDate}`);
                 
-                if (t.type === 'EXPENSE') {
-                    const cat = EXPENSE_CATEGORIES.find(c => c.id == t.categoryId);
-                    categoryName = cat ? cat.name : 'Despesa';
-                    categoryIcon = cat ? cat.icon : '💸';
-                } else {
-                    const cat = INCOME_CATEGORIES.find(c => c.id == t.categoryId);
-                    categoryName = cat ? cat.name : 'Receita';
-                    categoryIcon = cat ? cat.icon : '💰';
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                return `
+                const transactions = await response.json();
+                console.log("Transações recebidas:", transactions);
+                
+                const tbody = document.getElementById('transactionsList');
+                
+                if (!transactions || transactions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-message">📭 Nenhuma transação encontrada</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = transactions.map(t => `
                     <tr>
                         <td>${formatDate(t.transactionDate)}</td>
-                        <td><strong>${t.description}</strong></td>
-                        <td><span class="category-badge">${categoryIcon} ${categoryName}</span></td>
+                        <td><strong>${escapeHtml(t.description)}</strong></td>
+                        <td><span class="category-badge">${escapeHtml(t.category)}</span></td>
                         <td><span class="type-badge ${t.type === 'INCOME' ? 'income' : 'expense'}">${t.type === 'INCOME' ? '💰 Receita' : '💸 Despesa'}</span></td>
                         <td class="${t.type === 'INCOME' ? 'income-value' : 'expense-value'}">${formatCurrency(t.amount)}</td>
                         <td>
-                            <button class="btn-icon edit" onclick="editTransaction(${t.id})" title="Editar">✏️</button>
-                            <button class="btn-icon delete" onclick="deleteTransaction(${t.id})" title="Excluir">🗑️</button>
+                            <button class="btn-icon edit" onclick="editTransaction(${t.id})">✏️</button>
+                            <button class="btn-icon delete" onclick="deleteTransaction(${t.id})">🗑️</button>
                         </td>
                     </tr>
-                `;
-            }).join('');
+                `).join('');
+            } catch (error) {
+                console.error('Erro ao carregar:', error);
+                showToast('Erro ao carregar transações: ' + error.message, 'error');
+            }
         }
         
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('pt-BR');
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
         }
         
-        function openTransactionModal() {
+        function openModal() {
             document.getElementById('modalTitle').textContent = '➕ Nova transação';
             document.getElementById('transactionForm').reset();
             document.getElementById('transactionId').value = '';
             document.getElementById('transactionDate').value = getToday();
-            updateCategoriesByType();
+            updateCategories();
             document.getElementById('transactionModal').style.display = 'flex';
         }
         
-        function closeTransactionModal() {
+        function closeModal() {
             document.getElementById('transactionModal').style.display = 'none';
         }
         
-        function editTransaction(id) {
+        async function editTransaction(id) {
             const userId = localStorage.getItem('userId');
-            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
-            if (savedTransactions) {
-                transactions = JSON.parse(savedTransactions);
+            try {
+                const response = await fetch(`/api/transactions?userId=${userId}&startDate=2000-01-01&endDate=2100-12-31`);
+                const transactions = await response.json();
                 const transaction = transactions.find(t => t.id === id);
                 
                 if (transaction) {
@@ -301,45 +282,35 @@
                     document.getElementById('amount').value = transaction.amount;
                     document.getElementById('type').value = transaction.type;
                     document.getElementById('transactionDate').value = transaction.transactionDate;
-                    
-                    updateCategoriesByType();
-                    document.getElementById('categoryId').value = transaction.categoryId;
+                    updateCategories();
+                    setTimeout(() => { 
+                        document.getElementById('category').value = transaction.category; 
+                    }, 100);
                     document.getElementById('transactionModal').style.display = 'flex';
                 }
+            } catch (error) {
+                showToast('Erro ao carregar transação', 'error');
             }
         }
         
-        function deleteTransaction(id) {
+        async function deleteTransaction(id) {
             if (!confirm('⚠️ Tem certeza que deseja excluir esta transação?')) return;
             
             const userId = localStorage.getItem('userId');
-            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
-            if (savedTransactions) {
-                transactions = JSON.parse(savedTransactions);
-                transactions = transactions.filter(t => t.id !== id);
-                localStorage.setItem(`transactions_${userId}`, JSON.stringify(transactions));
-                showToast('✅ Transação excluída com sucesso!', 'success');
-                loadTransactions();
-                updateDashboardSummary();
-            }
-        }
-        
-        function updateDashboardSummary() {
-            // Atualizar o resumo no dashboard se estiver aberto
-            const userId = localStorage.getItem('userId');
-            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
-            if (savedTransactions) {
-                const allTransactions = JSON.parse(savedTransactions);
-                const totalIncomes = allTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
-                const totalExpenses = allTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
-                const balance = totalIncomes - totalExpenses;
+            try {
+                const response = await fetch(`/api/transactions/${id}?userId=${userId}`, { 
+                    method: 'DELETE' 
+                });
+                const result = await response.json();
                 
-                // Salvar resumo no localStorage para o dashboard
-                localStorage.setItem(`summary_${userId}`, JSON.stringify({
-                    totalIncomes,
-                    totalExpenses,
-                    balance
-                }));
+                if (result.success) {
+                    showToast('✅ Transação excluída!', 'success');
+                    loadTransactions();
+                } else {
+                    showToast(result.error || 'Erro ao excluir', 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao excluir transação', 'error');
             }
         }
         
@@ -347,49 +318,52 @@
             e.preventDefault();
             
             const userId = localStorage.getItem('userId');
-            if (!userId) return;
+            if (!userId) {
+                showToast('Usuário não logado', 'error');
+                return;
+            }
             
             const id = document.getElementById('transactionId').value;
             const transaction = {
-                id: id ? parseInt(id) : Date.now(),
                 userId: parseInt(userId),
                 description: document.getElementById('description').value,
                 amount: parseFloat(document.getElementById('amount').value),
                 type: document.getElementById('type').value,
-                categoryId: parseInt(document.getElementById('categoryId').value),
+                category: document.getElementById('category').value,
                 transactionDate: document.getElementById('transactionDate').value
             };
             
-            if (!transaction.categoryId) {
-                showToast('Por favor, selecione uma categoria', 'error');
+            if (!transaction.category) {
+                showToast('Selecione uma categoria', 'error');
                 return;
             }
             
-            // Salvar no localStorage
-            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
-            if (savedTransactions) {
-                transactions = JSON.parse(savedTransactions);
-            } else {
-                transactions = [];
-            }
+            const url = id ? `/api/transactions/${id}` : '/api/transactions';
+            const method = id ? 'PUT' : 'POST';
             
-            if (id) {
-                // Editar
-                const index = transactions.findIndex(t => t.id === parseInt(id));
-                if (index !== -1) {
-                    transactions[index] = transaction;
+            console.log("Enviando:", transaction);
+            
+            try {
+                const response = await fetch(url, { 
+                    method: method, 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(transaction) 
+                });
+                
+                const result = await response.json();
+                console.log("Resposta:", result);
+                
+                if (result.success) {
+                    showToast(id ? '✅ Transação atualizada!' : '✅ Transação salva!', 'success');
+                    closeModal();
+                    loadTransactions();
+                } else {
+                    showToast(result.error || 'Erro ao salvar', 'error');
                 }
-            } else {
-                // Adicionar
-                transactions.push(transaction);
+            } catch (error) {
+                console.error('Erro:', error);
+                showToast('Erro ao salvar transação: ' + error.message, 'error');
             }
-            
-            localStorage.setItem(`transactions_${userId}`, JSON.stringify(transactions));
-            updateDashboardSummary();
-            
-            showToast('✅ Transação salva com sucesso!', 'success');
-            closeTransactionModal();
-            loadTransactions();
         });
         
         document.getElementById('userName').textContent = localStorage.getItem('userName') || 'Usuário';
@@ -404,11 +378,10 @@
         
         window.onclick = function(event) {
             const modal = document.getElementById('transactionModal');
-            if (event.target === modal) {
-                closeTransactionModal();
-            }
+            if (event.target === modal) closeModal();
         };
         
+        // Carregar transações ao iniciar
         loadTransactions();
     </script>
 </body>

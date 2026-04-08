@@ -17,8 +17,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     BigDecimal sumByUserAndType(@Param("user") User user, @Param("type") TransactionType type, 
                                  @Param("start") LocalDate start, @Param("end") LocalDate end);
     
-    @Query("SELECT t.category.name, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+    @Query("SELECT t.category, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
            "WHERE t.user = :user AND t.type = 'EXPENSE' AND t.transactionDate BETWEEN :start AND :end " +
-           "GROUP BY t.category.name ORDER BY SUM(t.amount) DESC")
+           "GROUP BY t.category ORDER BY SUM(t.amount) DESC")
     List<Object[]> getExpensesByCategory(@Param("user") User user, @Param("start") LocalDate start, @Param("end") LocalDate end);
 }

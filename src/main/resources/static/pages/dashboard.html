@@ -28,7 +28,7 @@
     <div class="container">
         <!-- Status do Python -->
         <div id="pythonStatus" class="python-status">
-            <span>🐍 Verificando conexão com Python...</span>
+            <span>🔍 Verificando conexão com Python...</span>
         </div>
         
         <div class="filters-card">
@@ -76,7 +76,7 @@
                 <canvas id="categoryChart"></canvas>
             </div>
             <div class="chart-box">
-                <h3>📈 Evolução mensal</h3>
+                <h3>📈 Evolução mensal (gerado pelo Python)</h3>
                 <canvas id="monthlyChart"></canvas>
             </div>
         </div>
@@ -84,15 +84,8 @@
         <div class="insights-box">
             <h3>💡 Insights inteligentes (gerados pelo Python)</h3>
             <div id="insightsList" class="insights-list">
-                <div class="insight-placeholder">
-                    <p>⏳ Carregando insights do Python...</p>
-                </div>
+                <div class="insight-placeholder">📝 Carregando insights...</div>
             </div>
-        </div>
-        
-        <div class="stats-box">
-            <h3>📊 Estatísticas</h3>
-            <div id="statsList" class="stats-list"></div>
         </div>
     </div>
     
@@ -113,35 +106,21 @@
             background: #f8d7da;
             color: #721c24;
         }
-        .stats-box {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            margin-top: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        .stats-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        .insight-card {
+            display: flex;
             gap: 15px;
-            margin-top: 15px;
-        }
-        .stat-card {
-            text-align: center;
             padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
+            border-radius: 12px;
+            margin-bottom: 10px;
         }
-        .stat-card h4 {
-            color: #666;
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-        .stat-card p {
-            font-size: 20px;
-            font-weight: bold;
-            color: #333;
-        }
+        .insight-card.danger { background: #fef3f2; border-left: 4px solid #e74c3c; }
+        .insight-card.warning { background: #fffbeb; border-left: 4px solid #f39c12; }
+        .insight-card.success { background: #f0fdf4; border-left: 4px solid #27ae60; }
+        .insight-card.info { background: #eff6ff; border-left: 4px solid #3498db; }
+        .insight-icon { font-size: 28px; }
+        .insight-content h4 { margin-bottom: 5px; color: #333; }
+        .insight-content p { color: #666; margin-bottom: 5px; font-size: 14px; }
+        .insight-content small { color: #888; font-size: 12px; }
     </style>
     
     <script>
@@ -158,26 +137,17 @@
         
         function getFirstDayOfMonth() {
             const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            return firstDay.toISOString().split('T')[0];
+            return new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
         }
         
         function setPeriod(period) {
             const today = new Date();
             let startDate = new Date();
-            
             switch(period) {
-                case 'week':
-                    startDate.setDate(today.getDate() - 7);
-                    break;
-                case 'month':
-                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                    break;
-                case 'year':
-                    startDate = new Date(today.getFullYear(), 0, 1);
-                    break;
+                case 'week': startDate.setDate(today.getDate() - 7); break;
+                case 'month': startDate = new Date(today.getFullYear(), today.getMonth(), 1); break;
+                case 'year': startDate = new Date(today.getFullYear(), 0, 1); break;
             }
-            
             document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
             document.getElementById('endDate').value = getToday();
             loadDashboard();
@@ -189,18 +159,17 @@
                 const data = await response.json();
                 const statusDiv = document.getElementById('pythonStatus');
                 if (response.ok) {
-                    statusDiv.innerHTML = '<span>✅ Python Service: ONLINE - ' + data.message + '</span>';
+                    statusDiv.innerHTML = '<span>✅ Python Service: ONLINE - Processando dados inteligentes</span>';
                     statusDiv.className = 'python-status online';
                     return true;
-                } else {
-                    throw new Error('Python não respondeu');
                 }
             } catch (error) {
                 const statusDiv = document.getElementById('pythonStatus');
-                statusDiv.innerHTML = '<span>❌ Python Service: OFFLINE - Os insights e gráficos podem não funcionar corretamente</span>';
+                statusDiv.innerHTML = '<span>⚠️ Python Service: OFFLINE - Usando dados do servidor</span>';
                 statusDiv.className = 'python-status offline';
                 return false;
             }
+            return false;
         }
         
         async function loadDashboard() {
@@ -210,100 +179,62 @@
                 return;
             }
             
-            let startDate = document.getElementById('startDate').value;
-            let endDate = document.getElementById('endDate').value;
+            let startDate = document.getElementById('startDate').value || getFirstDayOfMonth();
+            let endDate = document.getElementById('endDate').value || getToday();
             
-            if (!startDate) startDate = getFirstDayOfMonth();
-            if (!endDate) endDate = getToday();
-            
-            // Buscar transações do localStorage
-            const savedTransactions = localStorage.getItem(`transactions_${userId}`);
-            let transactions = savedTransactions ? JSON.parse(savedTransactions) : [];
-            
-            // Adicionar nomes das categorias
-            transactions = transactions.map(t => {
-                let categoryName = '';
-                if (t.type === 'EXPENSE') {
-                    const cat = EXPENSE_CATEGORIES.find(c => c.id === t.categoryId);
-                    categoryName = cat ? cat.name : 'Outros';
-                } else {
-                    const cat = INCOME_CATEGORIES.find(c => c.id === t.categoryId);
-                    categoryName = cat ? cat.name : 'Outros';
-                }
-                return { ...t, category: categoryName };
-            });
-            
-            // Filtrar por período
-            const filtered = transactions.filter(t => {
-                return t.transactionDate >= startDate && t.transactionDate <= endDate;
-            });
-            
-            // Verificar se Python está online
-            const pythonOnline = await checkPythonStatus();
-            
-            if (pythonOnline) {
-                // Usar Python para processar os dados
-                await loadDashboardWithPython(filtered, startDate, endDate);
-            } else {
-                // Fallback: usar JavaScript
-                loadDashboardWithJS(filtered);
-            }
-        }
-        
-        async function loadDashboardWithPython(transactions, startDate, endDate) {
             try {
-                const response = await fetch('http://localhost:5000/dashboard-data', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        transactions: transactions,
-                        startDate: startDate,
-                        endDate: endDate
-                    })
-                });
+                // Buscar transações do Spring Boot
+                const transactionsResponse = await fetch(`/api/transactions?userId=${userId}&startDate=${startDate}&endDate=${endDate}`);
+                const transactions = await transactionsResponse.json();
                 
-                const data = await response.json();
+                // Verificar Python
+                const pythonOnline = await checkPythonStatus();
                 
-                if (data.success) {
-                    // Atualizar resumo
-                    document.getElementById('balance').textContent = formatCurrency(data.summary.balance);
-                    document.getElementById('totalIncomes').textContent = formatCurrency(data.summary.totalIncomes);
-                    document.getElementById('totalExpenses').textContent = formatCurrency(data.summary.totalExpenses);
+                if (pythonOnline && transactions.length > 0) {
+                    // Usar Python para processar os dados
+                    const pythonResponse = await fetch('http://localhost:5000/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ transactions: transactions })
+                    });
+                    const pythonData = await pythonResponse.json();
                     
-                    // Atualizar gráficos
-                    updateCategoryChart(data.charts.categoryChart);
-                    updateMonthlyChart(data.charts.monthlyChart);
-                    
-                    // Atualizar insights
-                    updateInsights(data.insights);
-                    
-                    // Atualizar estatísticas
-                    updateStats(data.stats);
-                } else {
-                    console.error('Erro do Python:', data.error);
-                    loadDashboardWithJS(transactions);
+                    if (pythonData.success) {
+                        // Atualizar resumo
+                        document.getElementById('balance').textContent = formatCurrency(pythonData.summary.balance);
+                        document.getElementById('totalIncomes').textContent = formatCurrency(pythonData.summary.totalIncomes);
+                        document.getElementById('totalExpenses').textContent = formatCurrency(pythonData.summary.totalExpenses);
+                        
+                        // Atualizar gráficos
+                        updateCategoryChart(pythonData.charts.categoryChart);
+                        updateMonthlyChart(pythonData.charts.monthlyChart);
+                        
+                        // Atualizar insights
+                        updateInsights(pythonData.insights);
+                        return;
+                    }
                 }
+                
+                // Fallback: calcular no JavaScript se Python estiver offline
+                calculateLocally(transactions);
+                
             } catch (error) {
-                console.error('Erro ao chamar Python:', error);
-                loadDashboardWithJS(transactions);
+                console.error('Erro:', error);
+                calculateLocally([]);
             }
         }
         
-        function loadDashboardWithJS(transactions) {
-            // Fallback: cálculo com JavaScript
-            const totalIncomes = transactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
-            const totalExpenses = transactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
-            const balance = totalIncomes - totalExpenses;
+        function calculateLocally(transactions) {
+            const totalIncomes = transactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
+            const totalExpenses = transactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
             
-            document.getElementById('balance').textContent = formatCurrency(balance);
+            document.getElementById('balance').textContent = formatCurrency(totalIncomes - totalExpenses);
             document.getElementById('totalIncomes').textContent = formatCurrency(totalIncomes);
             document.getElementById('totalExpenses').textContent = formatCurrency(totalExpenses);
             
-            // Gráfico de categorias
             const expensesByCategory = {};
             transactions.filter(t => t.type === 'EXPENSE').forEach(t => {
-                const cat = t.category || 'Outros';
-                expensesByCategory[cat] = (expensesByCategory[cat] || 0) + t.amount;
+                expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
             });
             
             updateCategoryChart({
@@ -311,15 +242,13 @@
                 values: Object.values(expensesByCategory)
             });
             
-            // Insights padrão
-            const insights = [{
+            updateInsights([{
                 type: 'info',
                 icon: 'ℹ️',
                 title: 'Modo Offline',
-                message: 'Python service não está disponível',
-                suggestion: 'Os insights estão sendo gerados localmente'
-            }];
-            updateInsights(insights);
+                message: 'Python service não disponível',
+                suggestion: 'Os dados estão sendo processados localmente'
+            }]);
         }
         
         function updateCategoryChart(chartData) {
@@ -338,15 +267,12 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
                     plugins: {
                         legend: { position: 'bottom' },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
-                                    return `${context.label}: ${formatCurrency(context.raw)} (${percentage}%)`;
+                                    return `${context.label}: ${formatCurrency(context.raw)}`;
                                 }
                             }
                         }
@@ -369,20 +295,21 @@
                             data: chartData.incomes || [],
                             borderColor: '#27ae60',
                             backgroundColor: 'rgba(39, 174, 96, 0.1)',
-                            fill: true
+                            fill: true,
+                            tension: 0.4
                         },
                         {
                             label: 'Despesas',
                             data: chartData.expenses || [],
                             borderColor: '#e74c3c',
                             backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                            fill: true
+                            fill: true,
+                            tension: 0.4
                         }
                     ]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
                     plugins: {
                         tooltip: {
                             callbacks: {
@@ -398,80 +325,29 @@
         
         function updateInsights(insights) {
             const insightsDiv = document.getElementById('insightsList');
-            
             if (!insights || insights.length === 0) {
-                insightsDiv.innerHTML = '<div class="insight-placeholder"><p>📝 Adicione transações para receber insights</p></div>';
+                insightsDiv.innerHTML = '<div class="insight-placeholder">📝 Adicione transações para receber insights</div>';
                 return;
             }
             
-            insightsDiv.innerHTML = insights.map(insight => `
-                <div class="insight-card ${insight.type}">
-                    <div class="insight-icon">${insight.icon || '💡'}</div>
+            insightsDiv.innerHTML = insights.map(i => `
+                <div class="insight-card ${i.type}">
+                    <div class="insight-icon">${i.icon || '💡'}</div>
                     <div class="insight-content">
-                        <h4>${insight.title}</h4>
-                        <p>${insight.message}</p>
-                        <small>💡 ${insight.suggestion}</small>
+                        <h4>${i.title}</h4>
+                        <p>${i.message}</p>
+                        <small>💡 ${i.suggestion}</small>
                     </div>
                 </div>
             `).join('');
         }
         
-        function updateStats(stats) {
-            const statsDiv = document.getElementById('statsList');
-            if (!stats) return;
-            
-            statsDiv.innerHTML = `
-                <div class="stat-card">
-                    <h4>📝 Total de transações</h4>
-                    <p>${stats.totalTransactions || 0}</p>
-                </div>
-                <div class="stat-card">
-                    <h4>💰 Total de receitas</h4>
-                    <p>${stats.totalIncomesCount || 0}</p>
-                </div>
-                <div class="stat-card">
-                    <h4>💸 Total de despesas</h4>
-                    <p>${stats.totalExpensesCount || 0}</p>
-                </div>
-                <div class="stat-card">
-                    <h4>📊 Gasto médio</h4>
-                    <p>${formatCurrency(stats.averageExpense || 0)}</p>
-                </div>
-            `;
-        }
-        
-        // Categorias para referência
-        const EXPENSE_CATEGORIES = [
-            { id: 1, name: "Alimentação" }, { id: 2, name: "Transporte" },
-            { id: 3, name: "Lazer" }, { id: 4, name: "Moradia" },
-            { id: 5, name: "Saúde" }, { id: 6, name: "Educação" },
-            { id: 7, name: "Vestuário" }, { id: 8, name: "Serviços" },
-            { id: 9, name: "Pet" }, { id: 10, name: "Presentes" },
-            { id: 11, name: "Viagem" }, { id: 12, name: "Dívidas" },
-            { id: 13, name: "Outros" }
-        ];
-        
-        const INCOME_CATEGORIES = [
-            { id: 101, name: "Salário" }, { id: 102, name: "Freelance" },
-            { id: 103, name: "Investimentos" }, { id: 104, name: "Presentes" },
-            { id: 105, name: "Bônus" }, { id: 106, name: "Rendimentos" },
-            { id: 107, name: "Outros" }
-        ];
-        
         document.getElementById('userName').textContent = localStorage.getItem('userName') || 'Usuário';
-        
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            localStorage.clear();
-            window.location.href = 'login.html';
-        });
-        
+        document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); window.location.href = 'login.html'; };
         document.getElementById('startDate').value = getFirstDayOfMonth();
         document.getElementById('endDate').value = getToday();
         
         loadDashboard();
-        
-        // Atualizar a cada 30 segundos
-        setInterval(loadDashboard, 30000);
     </script>
 </body>
 </html>
