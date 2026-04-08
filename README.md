@@ -1,4 +1,4 @@
-# 💰 FinanceApp - Sistema de Controle Financeiro Inteligente
+<h1 align="center"> 💰 Finance Control - Sistema de Controle Financeiro Inteligente </h1>
 
 👨‍💻 Desenvolvido por **Bernardo**
 
