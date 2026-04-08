@@ -67,6 +67,9 @@ O serviço em Python é responsável por:
 
 ---
 
+<img width="1917" height="1036" alt="image" src="https://github.com/user-attachments/assets/a7690102-821f-4e37-b078-250a733fc771" />
+
+
 ### 1️⃣ Clonar o repositório
 
 ```bash
