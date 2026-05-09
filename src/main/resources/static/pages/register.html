@@ -4,87 +4,310 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro - FinanceApp</title>
-    <link rel="stylesheet" href="../css/style.css">
-</head>
-<body class="auth-page">
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="logo">
-                <div class="logo-icon">💰</div>
-                <h1>FinanceApp</h1>
-                <p class="subtitle">Controle suas finanças de forma inteligente</p>
-            </div>
-            
-            <h2>Criar minha conta</h2>
-            
-            <form id="registerForm">
-                <div class="form-group">
-                    <label>📝 Nome completo</label>
-                    <input type="text" id="name" placeholder="Ex: João Silva" required>
-                </div>
-                <div class="form-group">
-                    <label>📧 E-mail</label>
-                    <input type="email" id="email" placeholder="seu@email.com" required>
-                </div>
-                <div class="form-group">
-                    <label>🔒 Senha</label>
-                    <input type="password" id="password" placeholder="Mínimo 6 caracteres" required>
-                </div>
-                <button type="submit" class="btn-primary">Criar minha conta</button>
-            </form>
-            
-            <div class="auth-footer">
-                <p>Já tem uma conta? <a href="login.html">Fazer login</a></p>
-            </div>
-            <div id="message" class="message"></div>
-        </div>
-    </div>
-    
-    <script>
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const data = {
-                name: document.getElementById('name').value,
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value
-            };
-            
-            if (data.password.length < 6) {
-                showMessage('A senha deve ter no mínimo 6 caracteres!', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await response.json();
-                
-                if (result.error) {
-                    showMessage(result.error, 'error');
-                } else {
-                    showMessage('✅ Cadastro realizado com sucesso! Redirecionando...', 'success');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                }
-            } catch (error) {
-                showMessage('Erro de conexão com o servidor', 'error');
-            }
-        });
-        
-        function showMessage(msg, type) {
-            const msgDiv = document.getElementById('message');
-            msgDiv.className = `message ${type}`;
-            msgDiv.innerHTML = msg;
-            setTimeout(() => {
-                msgDiv.innerHTML = '';
-            }, 3000);
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0e0f11;
+            --bg-card: #16181c;
+            --bg-input: #1c1f24;
+            --border: rgba(255,255,255,0.07);
+            --border-strong: rgba(255,255,255,0.12);
+            --text-primary: #f0f0ee;
+            --text-secondary: #8a8a88;
+            --text-muted: #4a4a48;
+            --accent-green: #2eca8b;
+            --accent-green-dim: rgba(46,202,139,0.12);
+            --accent-red: #f04f4f;
+            --accent-red-dim: rgba(240,79,79,0.12);
+            --accent-blue: #4a9eff;
+            --radius: 14px;
+            --radius-sm: 8px;
+            --font: 'DM Sans', system-ui, sans-serif;
         }
-    </script>
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            /* subtle grid pattern */
+            background-image: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+            background-size: 28px 28px;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        /* ── LOGO ── */
+        .logo-area {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .logo-icon {
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, #2eca8b, #1aa870);
+            border-radius: 16px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 24px; margin-bottom: 14px;
+            box-shadow: 0 0 40px rgba(46,202,139,0.18);
+        }
+        .logo-area h1 {
+            font-size: 20px; font-weight: 700; letter-spacing: -0.4px;
+            color: var(--text-primary); margin-bottom: 6px;
+        }
+        .logo-area p {
+            font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+        }
+
+        /* ── CARD ── */
+        .auth-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius);
+            padding: 2rem;
+        }
+        .auth-card h2 {
+            font-size: 18px; font-weight: 600; letter-spacing: -0.3px;
+            color: var(--text-primary); margin-bottom: 1.5rem;
+        }
+
+        /* ── FORM ── */
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
+        .form-group label {
+            font-size: 12px; font-weight: 600; color: var(--text-secondary);
+            letter-spacing: 0.05em; text-transform: uppercase;
+        }
+        .input-wrap { position: relative; }
+        .input-wrap .input-icon {
+            position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+            font-size: 15px; pointer-events: none; opacity: 0.5;
+        }
+        .form-group input {
+            width: 100%;
+            background: var(--bg-input); border: 1px solid var(--border);
+            color: var(--text-primary); font-family: var(--font); font-size: 14px;
+            padding: 11px 14px 11px 38px;
+            border-radius: var(--radius-sm); outline: none; transition: border-color 0.15s;
+        }
+        .form-group input::placeholder { color: var(--text-muted); }
+        .form-group input:focus { border-color: var(--accent-blue); }
+
+        .password-wrap { position: relative; }
+        .toggle-pw {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: var(--text-muted);
+            cursor: pointer; font-size: 15px; padding: 2px; transition: color 0.15s;
+            font-family: var(--font);
+        }
+        .toggle-pw:hover { color: var(--text-secondary); }
+
+        /* strength bar */
+        .strength-bar {
+            display: flex; gap: 4px; margin-top: 6px;
+        }
+        .strength-seg {
+            flex: 1; height: 3px; border-radius: 999px;
+            background: rgba(255,255,255,0.07); transition: background 0.3s;
+        }
+        .strength-label {
+            font-size: 11px; color: var(--text-muted); margin-top: 4px;
+            min-height: 14px; transition: color 0.3s;
+        }
+
+        /* ── BTN ── */
+        .btn-primary {
+            width: 100%; background: var(--accent-green); border: none; color: #0e0f11;
+            font-family: var(--font); font-size: 14px; font-weight: 700;
+            padding: 12px; border-radius: var(--radius-sm); cursor: pointer;
+            transition: opacity 0.15s; margin-top: 0.5rem; letter-spacing: -0.1px;
+        }
+        .btn-primary:hover { opacity: 0.85; }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ── FOOTER ── */
+        .auth-footer {
+            text-align: center; margin-top: 1.25rem;
+            font-size: 13px; color: var(--text-secondary);
+        }
+        .auth-footer a { color: var(--accent-green); text-decoration: none; font-weight: 500; }
+        .auth-footer a:hover { text-decoration: underline; }
+
+        /* ── MESSAGE ── */
+        .message {
+            margin-top: 1rem; padding: 10px 14px; border-radius: var(--radius-sm);
+            font-size: 13px; font-weight: 500; text-align: center;
+            display: none; border: 1px solid transparent;
+        }
+        .message.success {
+            display: block;
+            background: var(--accent-green-dim); color: var(--accent-green);
+            border-color: rgba(46,202,139,0.25);
+        }
+        .message.error {
+            display: block;
+            background: var(--accent-red-dim); color: var(--accent-red);
+            border-color: rgba(240,79,79,0.25);
+        }
+
+        /* ── DIVIDER ── */
+        .divider {
+            display: flex; align-items: center; gap: 12px;
+            margin: 1.25rem 0 0;
+        }
+        .divider::before, .divider::after {
+            content: ''; flex: 1; height: 1px; background: var(--border);
+        }
+        .divider span { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+        .terms {
+            font-size: 11px; color: var(--text-muted); text-align: center;
+            margin-top: 1rem; line-height: 1.6;
+        }
+        .terms a { color: var(--text-secondary); text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="auth-container">
+
+    <div class="logo-area">
+        <div class="logo-icon">💰</div>
+        <h1>FinanceApp</h1>
+        <p>Controle suas finanças de forma inteligente.</p>
+    </div>
+
+    <div class="auth-card">
+        <h2>Criar minha conta</h2>
+
+        <form id="registerForm" novalidate>
+
+            <div class="form-group">
+                <label>Nome completo</label>
+                <div class="input-wrap">
+                    <span class="input-icon">👤</span>
+                    <input type="text" id="name" placeholder="Ex: João Silva" required autocomplete="name">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>E-mail</label>
+                <div class="input-wrap">
+                    <span class="input-icon">✉</span>
+                    <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Senha</label>
+                <div class="input-wrap password-wrap">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="password" placeholder="Mínimo 6 caracteres" required autocomplete="new-password" oninput="checkStrength(this.value)">
+                    <button type="button" class="toggle-pw" onclick="togglePw()" id="toggleBtn" aria-label="Mostrar senha">👁</button>
+                </div>
+                <div class="strength-bar">
+                    <div class="strength-seg" id="s1"></div>
+                    <div class="strength-seg" id="s2"></div>
+                    <div class="strength-seg" id="s3"></div>
+                    <div class="strength-seg" id="s4"></div>
+                </div>
+                <div class="strength-label" id="strengthLabel"></div>
+            </div>
+
+            <button type="submit" class="btn-primary" id="submitBtn">Criar minha conta</button>
+        </form>
+
+        <div id="message" class="message"></div>
+
+        <div class="divider"><span>ou</span></div>
+
+        <div class="auth-footer">
+            Já tem uma conta? <a href="login.html">Fazer login</a>
+        </div>
+
+        <p class="terms">Ao criar sua conta, você concorda com os<br><a href="#">Termos de uso</a> e a <a href="#">Política de privacidade</a>.</p>
+    </div>
+
+</div>
+
+<script>
+    function togglePw() {
+        const input = document.getElementById('password');
+        const btn = document.getElementById('toggleBtn');
+        if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+        else { input.type = 'password'; btn.textContent = '👁'; }
+    }
+
+    const STRENGTHS = [
+        { label: '', color: 'rgba(255,255,255,0.07)' },
+        { label: 'Fraca',    color: '#f04f4f' },
+        { label: 'Regular',  color: '#f5a623' },
+        { label: 'Boa',      color: '#4a9eff' },
+        { label: 'Forte',    color: '#2eca8b' }
+    ];
+
+    function checkStrength(v) {
+        let score = 0;
+        if (v.length >= 6)  score++;
+        if (v.length >= 10) score++;
+        if (/[A-Z]/.test(v) && /[0-9]/.test(v)) score++;
+        if (/[^A-Za-z0-9]/.test(v)) score++;
+        const s = STRENGTHS[score];
+        for (let i = 1; i <= 4; i++) {
+            document.getElementById('s' + i).style.background = i <= score ? s.color : 'rgba(255,255,255,0.07)';
+        }
+        const lbl = document.getElementById('strengthLabel');
+        lbl.textContent = v.length ? `Senha ${s.label.toLowerCase()}` : '';
+        lbl.style.color = s.color;
+    }
+
+    function showMessage(msg, type) {
+        const el = document.getElementById('message');
+        el.textContent = msg;
+        el.className = `message ${type}`;
+        clearTimeout(el._t);
+        el._t = setTimeout(() => { el.className = 'message'; }, 4000);
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        const data = {
+            name: document.getElementById('name').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value
+        };
+        if (data.password.length < 6) { showMessage('A senha deve ter no mínimo 6 caracteres.', 'error'); return; }
+        btn.disabled = true;
+        btn.textContent = 'Criando conta...';
+        try {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.error) {
+                showMessage(result.error, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Criar minha conta';
+            } else {
+                showMessage('Cadastro realizado! Redirecionando...', 'success');
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+            }
+        } catch {
+            showMessage('Erro de conexão com o servidor.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Criar minha conta';
+        }
+    });
+</script>
 </body>
 </html>

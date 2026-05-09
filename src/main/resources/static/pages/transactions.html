@@ -4,385 +4,572 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transações - FinanceApp</title>
-    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            padding: 12px 24px;
-            border-radius: 10px;
-            color: white;
-            z-index: 2000;
-            opacity: 0;
-            transition: opacity 0.3s;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0e0f11;
+            --bg-card: #16181c;
+            --bg-card-hover: #1c1f24;
+            --bg-input: #1c1f24;
+            --bg-modal: #1a1c21;
+            --border: rgba(255,255,255,0.07);
+            --border-strong: rgba(255,255,255,0.12);
+            --text-primary: #f0f0ee;
+            --text-secondary: #8a8a88;
+            --text-muted: #4a4a48;
+            --accent-green: #2eca8b;
+            --accent-green-dim: rgba(46,202,139,0.12);
+            --accent-red: #f04f4f;
+            --accent-red-dim: rgba(240,79,79,0.12);
+            --accent-blue: #4a9eff;
+            --accent-blue-dim: rgba(74,158,255,0.10);
+            --accent-amber: #f5a623;
+            --radius: 14px;
+            --radius-sm: 8px;
+            --font: 'DM Sans', system-ui, sans-serif;
+            --font-mono: 'DM Mono', monospace;
         }
-        .toast.show { opacity: 1; }
-        .toast.success { background: #27ae60; }
-        .toast.error { background: #e74c3c; }
-        .category-badge { background: #e8f0fe; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
-        .type-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; }
-        .type-badge.income { background: #d4edda; color: #155724; }
-        .type-badge.expense { background: #f8d7da; color: #721c24; }
-        .income-value { color: #27ae60; font-weight: bold; }
-        .expense-value { color: #e74c3c; font-weight: bold; }
-        .btn-icon { padding: 6px 10px; margin: 0 3px; border: none; border-radius: 6px; cursor: pointer; }
-        .btn-icon.edit { background: #3498db; color: white; }
-        .btn-icon.delete { background: #e74c3c; color: white; }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        /* ── NAVBAR ── */
+        .navbar {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(14,15,17,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-container {
+            max-width: 1120px; margin: 0 auto; padding: 0 2rem;
+            height: 60px; display: flex; align-items: center; justify-content: space-between;
+        }
+        .logo-small { display: flex; align-items: center; gap: 10px; }
+        .logo-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, #2eca8b, #1aa870);
+            border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px;
+        }
+        .logo-small h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; color: var(--text-primary); }
+        .nav-menu { display: flex; align-items: center; gap: 4px; }
+        .nav-menu a {
+            text-decoration: none; color: var(--text-secondary); font-size: 14px; font-weight: 500;
+            padding: 6px 14px; border-radius: var(--radius-sm); transition: all 0.15s;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .nav-menu a:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+        .nav-menu a.active { color: var(--text-primary); background: rgba(255,255,255,0.08); }
+        .user-info {
+            display: flex; align-items: center; gap: 10px;
+            margin-left: 12px; padding-left: 16px; border-left: 1px solid var(--border);
+        }
+        .user-avatar {
+            width: 30px; height: 30px; background: var(--accent-blue-dim);
+            border: 1px solid rgba(74,158,255,0.25); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 600; color: var(--accent-blue);
+        }
+        .btn-logout {
+            background: none; border: 1px solid var(--border); color: var(--text-secondary);
+            font-family: var(--font); font-size: 13px; padding: 5px 12px;
+            border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s;
+        }
+        .btn-logout:hover { border-color: var(--accent-red); color: var(--accent-red); background: var(--accent-red-dim); }
+
+        /* ── LAYOUT ── */
+        .container { max-width: 1120px; margin: 0 auto; padding: 2rem; }
+
+        /* ── PAGE HEADER ── */
+        .transactions-header {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            margin-bottom: 1.75rem;
+        }
+        .transactions-header h2 {
+            font-size: 24px; font-weight: 600; letter-spacing: -0.5px; color: var(--text-primary);
+        }
+        .transactions-header p { color: var(--text-secondary); font-size: 14px; margin-top: 2px; }
+        .btn-primary {
+            background: var(--accent-green); border: none; color: #0e0f11;
+            font-family: var(--font); font-size: 13px; font-weight: 700;
+            padding: 9px 20px; border-radius: var(--radius-sm); cursor: pointer;
+            transition: opacity 0.15s; display: flex; align-items: center; gap: 7px;
+            letter-spacing: -0.1px;
+        }
+        .btn-primary:hover { opacity: 0.85; }
+
+        /* ── FILTERS ── */
+        .filters-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem; display: flex; align-items: center;
+            gap: 1.5rem; flex-wrap: wrap;
+        }
+        .filters-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; }
+        .date-filters { display: flex; align-items: center; gap: 10px; }
+        .date-filters label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+        .date-filters input[type="date"] {
+            background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary);
+            font-family: var(--font); font-size: 13px; padding: 6px 12px;
+            border-radius: var(--radius-sm); outline: none; transition: border-color 0.15s; cursor: pointer;
+        }
+        .date-filters input[type="date"]:focus { border-color: var(--accent-blue); }
+        .date-sep { color: var(--text-muted); font-size: 14px; }
+        .filter-actions { display: flex; gap: 8px; margin-left: auto; }
+        .btn-filter {
+            background: var(--accent-blue); border: none; color: #fff;
+            font-family: var(--font); font-size: 13px; font-weight: 600;
+            padding: 7px 18px; border-radius: var(--radius-sm); cursor: pointer; transition: opacity 0.15s;
+        }
+        .btn-filter:hover { opacity: 0.85; }
+        .btn-reset {
+            background: none; border: 1px solid var(--border); color: var(--text-secondary);
+            font-family: var(--font); font-size: 13px; font-weight: 500;
+            padding: 7px 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s;
+        }
+        .btn-reset:hover { border-color: var(--border-strong); color: var(--text-primary); }
+
+        /* ── TABLE ── */
+        .transactions-table-container {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); overflow: hidden;
+        }
+        .transactions-table { width: 100%; border-collapse: collapse; }
+        .transactions-table thead tr {
+            border-bottom: 1px solid var(--border);
+        }
+        .transactions-table thead th {
+            padding: 13px 20px; text-align: left;
+            font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+        .transactions-table tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.12s;
+        }
+        .transactions-table tbody tr:last-child { border-bottom: none; }
+        .transactions-table tbody tr:hover { background: var(--bg-card-hover); }
+        .transactions-table td {
+            padding: 14px 20px; font-size: 14px; color: var(--text-primary); vertical-align: middle;
+        }
+        .td-date {
+            font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); white-space: nowrap;
+        }
+        .td-desc { font-weight: 500; }
+        .td-amount { font-family: var(--font-mono); font-weight: 500; text-align: right; white-space: nowrap; }
+        .td-amount.income { color: var(--accent-green); }
+        .td-amount.expense { color: var(--accent-red); }
+        .empty-message {
+            text-align: center; color: var(--text-secondary); font-size: 14px;
+            padding: 3rem 0 !important;
+        }
+
+        /* ── BADGES ── */
+        .category-badge {
+            display: inline-block; font-size: 12px; font-weight: 500;
+            padding: 3px 10px; border-radius: 999px;
+            background: rgba(255,255,255,0.06); color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .type-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+        }
+        .type-badge.income { background: var(--accent-green-dim); color: var(--accent-green); border: 1px solid rgba(46,202,139,0.2); }
+        .type-badge.expense { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid rgba(240,79,79,0.2); }
+
+        /* ── ACTION BUTTONS ── */
+        .actions-cell { display: flex; gap: 6px; align-items: center; }
+        .btn-icon {
+            width: 30px; height: 30px; border: 1px solid var(--border);
+            border-radius: var(--radius-sm); cursor: pointer; font-size: 13px;
+            display: flex; align-items: center; justify-content: center;
+            background: none; color: var(--text-secondary);
+            transition: all 0.15s;
+        }
+        .btn-icon.edit:hover { background: var(--accent-blue-dim); border-color: rgba(74,158,255,0.3); color: var(--accent-blue); }
+        .btn-icon.delete:hover { background: var(--accent-red-dim); border-color: rgba(240,79,79,0.3); color: var(--accent-red); }
+
+        /* ── MODAL ── */
+        .modal {
+            display: none; position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: var(--bg-modal); border: 1px solid var(--border-strong);
+            border-radius: var(--radius); width: 100%; max-width: 500px;
+            margin: 1rem; animation: modalIn 0.2s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.97) translateY(8px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+        }
+        .modal-header h3 { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+        .close {
+            width: 28px; height: 28px; border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; line-height: 1; cursor: pointer;
+            color: var(--text-secondary); background: none; border: none;
+            transition: all 0.15s; font-family: var(--font);
+        }
+        .close:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+        .modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 12px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.04em; text-transform: uppercase; }
+        .form-group input,
+        .form-group select {
+            background: var(--bg-input); border: 1px solid var(--border);
+            color: var(--text-primary); font-family: var(--font); font-size: 14px;
+            padding: 10px 14px; border-radius: var(--radius-sm); outline: none;
+            transition: border-color 0.15s; width: 100%;
+        }
+        .form-group input::placeholder { color: var(--text-muted); }
+        .form-group input:focus,
+        .form-group select:focus { border-color: var(--accent-blue); }
+        .form-group select option { background: #1c1f24; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .modal-footer {
+            display: flex; gap: 10px; justify-content: flex-end;
+            padding: 1.25rem 1.5rem; border-top: 1px solid var(--border);
+        }
+        .btn-cancel {
+            background: none; border: 1px solid var(--border); color: var(--text-secondary);
+            font-family: var(--font); font-size: 13px; font-weight: 500;
+            padding: 9px 20px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s;
+        }
+        .btn-cancel:hover { border-color: var(--border-strong); color: var(--text-primary); }
+        .btn-save {
+            background: var(--accent-green); border: none; color: #0e0f11;
+            font-family: var(--font); font-size: 13px; font-weight: 700;
+            padding: 9px 24px; border-radius: var(--radius-sm); cursor: pointer; transition: opacity 0.15s;
+        }
+        .btn-save:hover { opacity: 0.85; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed; bottom: 28px; right: 28px;
+            padding: 12px 20px; border-radius: var(--radius-sm);
+            font-size: 14px; font-weight: 500; z-index: 2000;
+            opacity: 0; transform: translateY(8px);
+            transition: opacity 0.25s, transform 0.25s;
+            display: flex; align-items: center; gap: 10px;
+            border: 1px solid transparent; pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .toast.success {
+            background: rgba(46,202,139,0.12); color: var(--accent-green);
+            border-color: rgba(46,202,139,0.25);
+        }
+        .toast.error {
+            background: rgba(240,79,79,0.12); color: var(--accent-red);
+            border-color: rgba(240,79,79,0.25);
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 800px) {
+            .container { padding: 1rem; }
+            .nav-container { padding: 0 1rem; }
+            .filters-card { flex-direction: column; align-items: flex-start; }
+            .filter-actions { margin-left: 0; }
+            .form-row { grid-template-columns: 1fr; }
+            .transactions-table thead { display: none; }
+            .transactions-table tr { display: block; border-bottom: 1px solid var(--border); padding: 12px 16px; }
+            .transactions-table td { display: inline-block; border: none; padding: 2px 4px; font-size: 13px; }
+            .actions-cell { margin-top: 8px; }
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo-small">
-                <span>💰</span>
-                <h1>FinanceApp</h1>
-            </div>
-            <div class="nav-menu">
-                <a href="dashboard.html">📊 Dashboard</a>
-                <a href="transactions.html" class="active">📝 Transações</a>
-                <div class="user-info">
-                    <span>👤 <span id="userName"></span></span>
-                    <button id="logoutBtn" class="btn-logout">🚪 Sair</button>
-                </div>
-            </div>
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="logo-small">
+            <div class="logo-icon">💰</div>
+            <h1>FinanceApp</h1>
         </div>
-    </nav>
-    
-    <div class="container">
-        <div class="transactions-header">
-            <h2>📝 Minhas transações</h2>
-            <button onclick="openModal()" class="btn-primary">➕ Nova transação</button>
-        </div>
-        
-        <div class="filters-card">
-            <div class="filter-row">
-                <div class="date-filters">
-                    <label>📅 De:</label>
-                    <input type="date" id="startDate">
-                    <label>Até:</label>
-                    <input type="date" id="endDate">
-                </div>
-                <div class="filter-actions">
-                    <button onclick="loadTransactions()" class="btn-secondary">🔍 Filtrar</button>
-                    <button onclick="resetFilters()" class="btn-outline">🔄 Limpar</button>
-                </div>
+        <div class="nav-menu">
+            <a href="dashboard.html">📊 Dashboard</a>
+            <a href="transactions.html" class="active">📝 Transações</a>
+            <div class="user-info">
+                <div class="user-avatar" id="userInitial">U</div>
+                <span style="font-size:13px;color:var(--text-secondary)" id="userName"></span>
+                <button id="logoutBtn" class="btn-logout">Sair</button>
             </div>
-        </div>
-        
-        <div class="transactions-table-container">
-            <table class="transactions-table">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Descrição</th>
-                        <th>Categoria</th>
-                        <th>Tipo</th>
-                        <th>Valor</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="transactionsList">
-                    <tr><td colspan="6" class="empty-message">📭 Carregando...</td</tr>
-                </tbody>
-            </table>
         </div>
     </div>
-    
-    <!-- Modal -->
-    <div id="transactionModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">➕ Nova transação</h3>
-                <span class="close" onclick="closeModal()">&times;</span>
-            </div>
-            <form id="transactionForm">
-                <input type="hidden" id="transactionId">
-                
+</nav>
+
+<div class="container">
+
+    <div class="transactions-header">
+        <div>
+            <h2>Minhas transações</h2>
+            <p>Gerencie e filtre todas as suas movimentações financeiras.</p>
+        </div>
+        <button onclick="openModal()" class="btn-primary">＋ Nova transação</button>
+    </div>
+
+    <div class="filters-card">
+        <span class="filters-label">Filtrar por data</span>
+        <div class="date-filters">
+            <label>De</label>
+            <input type="date" id="startDate">
+            <span class="date-sep">→</span>
+            <label>Até</label>
+            <input type="date" id="endDate">
+        </div>
+        <div class="filter-actions">
+            <button onclick="loadTransactions()" class="btn-filter">Filtrar</button>
+            <button onclick="resetFilters()" class="btn-reset">Limpar</button>
+        </div>
+    </div>
+
+    <div class="transactions-table-container">
+        <table class="transactions-table">
+            <thead>
+            <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Tipo</th>
+                <th style="text-align:right">Valor</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody id="transactionsList">
+            <tr><td colspan="6" class="empty-message">Carregando transações...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="transactionModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Nova transação</h3>
+            <button class="close" onclick="closeModal()">×</button>
+        </div>
+        <form id="transactionForm">
+            <input type="hidden" id="transactionId">
+            <div class="modal-body">
                 <div class="form-group">
-                    <label>📝 Descrição</label>
-                    <input type="text" id="description" placeholder="Ex: Supermercado, Salário" required>
+                    <label>Descrição</label>
+                    <input type="text" id="description" placeholder="Ex: Supermercado, Salário..." required>
                 </div>
-                
                 <div class="form-row">
                     <div class="form-group">
-                        <label>💰 Valor</label>
-                        <input type="number" id="amount" step="0.01" placeholder="0,00" required>
+                        <label>Valor (R$)</label>
+                        <input type="number" id="amount" step="0.01" min="0" placeholder="0,00" required>
                     </div>
                     <div class="form-group">
-                        <label>📅 Data</label>
+                        <label>Data</label>
                         <input type="date" id="transactionDate" required>
                     </div>
                 </div>
-                
                 <div class="form-row">
                     <div class="form-group">
-                        <label>🔄 Tipo</label>
+                        <label>Tipo</label>
                         <select id="type" required onchange="updateCategories()">
-                            <option value="EXPENSE">💸 Despesa</option>
-                            <option value="INCOME">💰 Receita</option>
+                            <option value="EXPENSE">Despesa</option>
+                            <option value="INCOME">Receita</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>📂 Categoria</label>
+                        <label>Categoria</label>
                         <select id="category" required>
-                            <option value="">Selecione uma categoria</option>
+                            <option value="">Selecione...</option>
                         </select>
                     </div>
                 </div>
-                
-                <div class="modal-buttons">
-                    <button type="button" onclick="closeModal()" class="btn-secondary">Cancelar</button>
-                    <button type="submit" class="btn-primary">💾 Salvar</button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal()" class="btn-cancel">Cancelar</button>
+                <button type="submit" class="btn-save">Salvar transação</button>
+            </div>
+        </form>
     </div>
-    
-    <div id="toast" class="toast"></div>
-    
-    <script>
-        // Categorias disponíveis
-        const EXPENSE_CATEGORIES = [
-            "Alimentação", "Transporte", "Lazer", "Moradia", "Saúde", 
-            "Educação", "Vestuário", "Serviços", "Pet", "Presentes", 
-            "Viagem", "Dívidas", "Outros"
-        ];
-        
-        const INCOME_CATEGORIES = [
-            "Salário", "Freelance", "Investimentos", "Presentes", 
-            "Bônus", "Rendimentos", "Outros"
-        ];
-        
-        function showToast(message, type) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast ${type} show`;
-            setTimeout(() => { toast.className = 'toast'; }, 3000);
-        }
-        
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-        }
-        
-        function formatDate(dateString) {
-            return new Date(dateString).toLocaleDateString('pt-BR');
-        }
-        
-        function getToday() {
-            return new Date().toISOString().split('T')[0];
-        }
-        
-        function getFirstDayOfMonth() {
-            const today = new Date();
-            return new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-        }
-        
-        function resetFilters() {
-            document.getElementById('startDate').value = getFirstDayOfMonth();
-            document.getElementById('endDate').value = getToday();
-            loadTransactions();
-        }
-        
-        function updateCategories() {
-            const type = document.getElementById('type').value;
-            const select = document.getElementById('category');
-            const categories = type === 'EXPENSE' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-            
-            select.innerHTML = '<option value="">Selecione uma categoria</option>';
-            categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat;
-                option.textContent = cat;
-                select.appendChild(option);
-            });
-        }
-        
-        async function loadTransactions() {
-            const userId = localStorage.getItem('userId');
-            if (!userId) { 
-                window.location.href = 'login.html'; 
-                return; 
-            }
-            
-            let startDate = document.getElementById('startDate').value || getFirstDayOfMonth();
-            let endDate = document.getElementById('endDate').value || getToday();
-            
-            try {
-                console.log("Carregando transações para usuário:", userId);
-                const response = await fetch(`/api/transactions?userId=${userId}&startDate=${startDate}&endDate=${endDate}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const transactions = await response.json();
-                console.log("Transações recebidas:", transactions);
-                
-                const tbody = document.getElementById('transactionsList');
-                
-                if (!transactions || transactions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="empty-message">📭 Nenhuma transação encontrada</td></tr>';
-                    return;
-                }
-                
-                tbody.innerHTML = transactions.map(t => `
-                    <tr>
-                        <td>${formatDate(t.transactionDate)}</td>
-                        <td><strong>${escapeHtml(t.description)}</strong></td>
-                        <td><span class="category-badge">${escapeHtml(t.category)}</span></td>
-                        <td><span class="type-badge ${t.type === 'INCOME' ? 'income' : 'expense'}">${t.type === 'INCOME' ? '💰 Receita' : '💸 Despesa'}</span></td>
-                        <td class="${t.type === 'INCOME' ? 'income-value' : 'expense-value'}">${formatCurrency(t.amount)}</td>
-                        <td>
-                            <button class="btn-icon edit" onclick="editTransaction(${t.id})">✏️</button>
-                            <button class="btn-icon delete" onclick="deleteTransaction(${t.id})">🗑️</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (error) {
-                console.error('Erro ao carregar:', error);
-                showToast('Erro ao carregar transações: ' + error.message, 'error');
-            }
-        }
-        
-        function escapeHtml(text) {
-            if (!text) return '';
-            return text.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-        
-        function openModal() {
-            document.getElementById('modalTitle').textContent = '➕ Nova transação';
-            document.getElementById('transactionForm').reset();
-            document.getElementById('transactionId').value = '';
-            document.getElementById('transactionDate').value = getToday();
-            updateCategories();
-            document.getElementById('transactionModal').style.display = 'flex';
-        }
-        
-        function closeModal() {
-            document.getElementById('transactionModal').style.display = 'none';
-        }
-        
-        async function editTransaction(id) {
-            const userId = localStorage.getItem('userId');
-            try {
-                const response = await fetch(`/api/transactions?userId=${userId}&startDate=2000-01-01&endDate=2100-12-31`);
-                const transactions = await response.json();
-                const transaction = transactions.find(t => t.id === id);
-                
-                if (transaction) {
-                    document.getElementById('modalTitle').textContent = '✏️ Editar transação';
-                    document.getElementById('transactionId').value = transaction.id;
-                    document.getElementById('description').value = transaction.description;
-                    document.getElementById('amount').value = transaction.amount;
-                    document.getElementById('type').value = transaction.type;
-                    document.getElementById('transactionDate').value = transaction.transactionDate;
-                    updateCategories();
-                    setTimeout(() => { 
-                        document.getElementById('category').value = transaction.category; 
-                    }, 100);
-                    document.getElementById('transactionModal').style.display = 'flex';
-                }
-            } catch (error) {
-                showToast('Erro ao carregar transação', 'error');
-            }
-        }
-        
-        async function deleteTransaction(id) {
-            if (!confirm('⚠️ Tem certeza que deseja excluir esta transação?')) return;
-            
-            const userId = localStorage.getItem('userId');
-            try {
-                const response = await fetch(`/api/transactions/${id}?userId=${userId}`, { 
-                    method: 'DELETE' 
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    showToast('✅ Transação excluída!', 'success');
-                    loadTransactions();
-                } else {
-                    showToast(result.error || 'Erro ao excluir', 'error');
-                }
-            } catch (error) {
-                showToast('Erro ao excluir transação', 'error');
-            }
-        }
-        
-        document.getElementById('transactionForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                showToast('Usuário não logado', 'error');
-                return;
-            }
-            
-            const id = document.getElementById('transactionId').value;
-            const transaction = {
-                userId: parseInt(userId),
-                description: document.getElementById('description').value,
-                amount: parseFloat(document.getElementById('amount').value),
-                type: document.getElementById('type').value,
-                category: document.getElementById('category').value,
-                transactionDate: document.getElementById('transactionDate').value
-            };
-            
-            if (!transaction.category) {
-                showToast('Selecione uma categoria', 'error');
-                return;
-            }
-            
-            const url = id ? `/api/transactions/${id}` : '/api/transactions';
-            const method = id ? 'PUT' : 'POST';
-            
-            console.log("Enviando:", transaction);
-            
-            try {
-                const response = await fetch(url, { 
-                    method: method, 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify(transaction) 
-                });
-                
-                const result = await response.json();
-                console.log("Resposta:", result);
-                
-                if (result.success) {
-                    showToast(id ? '✅ Transação atualizada!' : '✅ Transação salva!', 'success');
-                    closeModal();
-                    loadTransactions();
-                } else {
-                    showToast(result.error || 'Erro ao salvar', 'error');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                showToast('Erro ao salvar transação: ' + error.message, 'error');
-            }
-        });
-        
-        document.getElementById('userName').textContent = localStorage.getItem('userName') || 'Usuário';
-        
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            localStorage.clear();
-            window.location.href = 'login.html';
-        });
-        
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    const EXPENSE_CATEGORIES = ["Alimentação","Transporte","Lazer","Moradia","Saúde","Educação","Vestuário","Serviços","Pet","Presentes","Viagem","Dívidas","Outros"];
+    const INCOME_CATEGORIES  = ["Salário","Freelance","Investimentos","Presentes","Bônus","Rendimentos","Outros"];
+
+    let toastTimer = null;
+    function showToast(message, type) {
+        const el = document.getElementById('toast');
+        el.textContent = message;
+        el.className = `toast ${type} show`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { el.className = 'toast'; }, 3000);
+    }
+
+    function formatCurrency(v) {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+    }
+    function formatDate(d) {
+        return new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
+    }
+    function getToday() { return new Date().toISOString().split('T')[0]; }
+    function getFirstDayOfMonth() {
+        const t = new Date();
+        return new Date(t.getFullYear(), t.getMonth(), 1).toISOString().split('T')[0];
+    }
+
+    function resetFilters() {
         document.getElementById('startDate').value = getFirstDayOfMonth();
         document.getElementById('endDate').value = getToday();
-        
-        window.onclick = function(event) {
-            const modal = document.getElementById('transactionModal');
-            if (event.target === modal) closeModal();
-        };
-        
-        // Carregar transações ao iniciar
         loadTransactions();
-    </script>
+    }
+
+    function updateCategories() {
+        const type = document.getElementById('type').value;
+        const sel = document.getElementById('category');
+        const cats = type === 'EXPENSE' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+        sel.innerHTML = '<option value="">Selecione...</option>';
+        cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+    }
+
+    async function loadTransactions() {
+        const userId = localStorage.getItem('userId');
+        if (!userId) { window.location.href = 'login.html'; return; }
+        const start = document.getElementById('startDate').value || getFirstDayOfMonth();
+        const end   = document.getElementById('endDate').value   || getToday();
+        const tbody = document.getElementById('transactionsList');
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-message">Carregando...</td></tr>';
+        try {
+            const res = await fetch(`/api/transactions?userId=${userId}&startDate=${start}&endDate=${end}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const tx = await res.json();
+            if (!tx || tx.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-message">Nenhuma transação encontrada para o período.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = tx.map(t => `
+                <tr>
+                    <td class="td-date">${formatDate(t.transactionDate)}</td>
+                    <td class="td-desc">${escapeHtml(t.description)}</td>
+                    <td><span class="category-badge">${escapeHtml(t.category)}</span></td>
+                    <td><span class="type-badge ${t.type === 'INCOME' ? 'income' : 'expense'}">${t.type === 'INCOME' ? '↑ Receita' : '↓ Despesa'}</span></td>
+                    <td class="td-amount ${t.type === 'INCOME' ? 'income' : 'expense'}">${t.type === 'INCOME' ? '+' : '-'} ${formatCurrency(t.amount)}</td>
+                    <td>
+                        <div class="actions-cell">
+                            <button class="btn-icon edit" onclick="editTransaction(${t.id})" title="Editar">✏️</button>
+                            <button class="btn-icon delete" onclick="deleteTransaction(${t.id})" title="Excluir">🗑</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            console.error(e);
+            showToast('Erro ao carregar transações', 'error');
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-message">Erro ao carregar dados.</td></tr>';
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    }
+
+    function openModal() {
+        document.getElementById('modalTitle').textContent = 'Nova transação';
+        document.getElementById('transactionForm').reset();
+        document.getElementById('transactionId').value = '';
+        document.getElementById('transactionDate').value = getToday();
+        updateCategories();
+        document.getElementById('transactionModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('transactionModal').style.display = 'none';
+    }
+
+    async function editTransaction(id) {
+        const userId = localStorage.getItem('userId');
+        try {
+            const res = await fetch(`/api/transactions?userId=${userId}&startDate=2000-01-01&endDate=2100-12-31`);
+            const tx = await res.json();
+            const t = tx.find(x => x.id === id);
+            if (!t) return;
+            document.getElementById('modalTitle').textContent = 'Editar transação';
+            document.getElementById('transactionId').value = t.id;
+            document.getElementById('description').value = t.description;
+            document.getElementById('amount').value = t.amount;
+            document.getElementById('type').value = t.type;
+            document.getElementById('transactionDate').value = t.transactionDate;
+            updateCategories();
+            setTimeout(() => { document.getElementById('category').value = t.category; }, 100);
+            document.getElementById('transactionModal').style.display = 'flex';
+        } catch { showToast('Erro ao carregar transação', 'error'); }
+    }
+
+    async function deleteTransaction(id) {
+        if (!confirm('Tem certeza que deseja excluir esta transação?')) return;
+        const userId = localStorage.getItem('userId');
+        try {
+            const res = await fetch(`/api/transactions/${id}?userId=${userId}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.success) { showToast('Transação excluída com sucesso.', 'success'); loadTransactions(); }
+            else showToast(result.error || 'Erro ao excluir', 'error');
+        } catch { showToast('Erro ao excluir transação', 'error'); }
+    }
+
+    document.getElementById('transactionForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const userId = localStorage.getItem('userId');
+        if (!userId) { showToast('Usuário não logado', 'error'); return; }
+        const id = document.getElementById('transactionId').value;
+        const cat = document.getElementById('category').value;
+        if (!cat) { showToast('Selecione uma categoria', 'error'); return; }
+        const transaction = {
+            userId: parseInt(userId),
+            description: document.getElementById('description').value,
+            amount: parseFloat(document.getElementById('amount').value),
+            type: document.getElementById('type').value,
+            category: cat,
+            transactionDate: document.getElementById('transactionDate').value
+        };
+        try {
+            const res = await fetch(id ? `/api/transactions/${id}` : '/api/transactions', {
+                method: id ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(transaction)
+            });
+            const result = await res.json();
+            if (result.success) {
+                showToast(id ? 'Transação atualizada!' : 'Transação salva!', 'success');
+                closeModal();
+                loadTransactions();
+            } else showToast(result.error || 'Erro ao salvar', 'error');
+        } catch (err) {
+            showToast('Erro ao salvar transação: ' + err.message, 'error');
+        }
+    });
+
+    // Init
+    const name = localStorage.getItem('userName') || 'Usuário';
+    document.getElementById('userName').textContent = name;
+    document.getElementById('userInitial').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'login.html'; });
+    document.getElementById('startDate').value = getFirstDayOfMonth();
+    document.getElementById('endDate').value = getToday();
+    window.onclick = e => { if (e.target === document.getElementById('transactionModal')) closeModal(); };
+    loadTransactions();
+</script>
 </body>
 </html>
