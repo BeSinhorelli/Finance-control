@@ -6,7 +6,7 @@
 
 ## 📋 Sobre o Projeto
 
-O **FinanceApp** é um sistema completo de controle financeiro pessoal que permite aos usuários gerenciar receitas e despesas de forma simples e intuitiva.
+O **Finance control** é um sistema completo de controle financeiro pessoal que permite aos usuários gerenciar receitas e despesas de forma simples e intuitiva.
 
 A aplicação combina diferentes tecnologias:
 
