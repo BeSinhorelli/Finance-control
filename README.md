@@ -67,7 +67,7 @@ O serviço em Python é responsável por:
 
 ---
 
-<img width="977" height="907" alt="image" src="https://github.com/user-attachments/assets/23e37c1f-e8eb-4403-907f-b15e55b10045" />
+<img width="1882" height="907" alt="image" src="https://github.com/user-attachments/assets/a5c13337-b7eb-4567-9f93-0855b90d6182" />
 
 
 ### 1️⃣ Clonar o repositório
