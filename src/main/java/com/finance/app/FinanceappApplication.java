@@ -155,14 +155,14 @@ public class FinanceappApplication {
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         try {
-            String url = "http://localhost:8083/pages/register.html";
+            String url = "http://localhost:8082/pages/register.html";
             System.out.println("========================================");
             System.out.println("Abrindo navegador: " + url);
             System.out.println("========================================");
             Desktop.getDesktop().browse(new URI(url));
         } catch (Exception e) {
             System.out.println("Nao foi possivel abrir o navegador automaticamente");
-            System.out.println("Acesse manualmente: http://localhost:8083/pages/register.html");
+            System.out.println("Acesse manualmente: http://localhost:8082/pages/register.html");
         }
     }
 
