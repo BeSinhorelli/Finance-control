@@ -78,18 +78,6 @@ cd financeapp
 
 ```
 
-### 2️⃣ Configurar e executar o Python Service
-
-```bash
-cd python-service
-
-# Instalar dependências
-pip install -r requirements.txt
-
-# Executar o serviço
-python app.py
-```
-
 ## 🗄️ Configuração do Banco de Dados
 
 ### 1️⃣ Acessar o MySQL e importar o banco.sql
